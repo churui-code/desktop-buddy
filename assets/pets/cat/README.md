@@ -2,9 +2,15 @@
 
 ## 当前默认：固定母版分层
 
-所有部位共享 `idle-base-v1.png` 原始母版，在 Godot 中通过蒙版分出身体、头部（含耳朵）、尾巴和眼睛。`layered_cat_layout.tres` 记录原图像素坐标、关节、显示比例和眼睛区域，图层素材不会重新缩放或生成。眼睛复用既有半闭眼、闭眼图的局部区域，手套继续使用独立的 `petting-glove-v1.png`。本次分层没有生成新图。
+小猫各部位共享 `idle-base-v1.png` 原始母版，在 Godot 中通过蒙版分出身体、头部（含耳朵）、尾巴和眼睛。`layered_cat_layout.tres` 记录原图像素坐标、关节、显示比例和眼睛区域，猫的图层素材不会重新生成。眼睛复用既有半闭眼、闭眼图的局部区域，手套使用独立的 `petting-right-glove-v2.png`。
 
-静态拼装与母版在同尺寸渲染下，可见 RGBA 像素差为零。报告：`previews/layered-cat-v1.qa.json`。摸头预览：`previews/cat-layered-head-pet-v1.webp`。小幅头部倾斜通过关节旋转实现，脖颈背面复用胸口像素填充；更大的动作需要补全隐藏部位。
+静态拼装与母版在同尺寸渲染下，可见 RGBA 像素差为零。报告：`previews/layered-cat-v2.qa.json`。摸头预览：`previews/cat-layered-head-pet-v2.webp`。小幅头部倾斜通过关节旋转实现，脖颈背面复用胸口像素填充；更大的动作需要补全隐藏部位。
+
+### 第一人称右手与抚摸调整
+
+内置 imagegen 参考旧手套生成 `petting-right-glove-v2.png`，完整提示词保存在 `petting-right-glove-v2.prompt.txt`。素材为 1254 × 1254 RGBA PNG，表现观看者从右下方伸出的右手，手背朝向观看者，指尖伸向左上方。保留生成的原始画布，使用独立锚点和节点缩放校准接触位置与大小。
+
+手套仍只有一张固定图片。抚摸周期为 1 秒，显示时横向总幅度约 20 像素，向右下压约 3.4 像素；猫头最大倾角约 2.6 度。所有动作参数位于 `layered_cat_layout.tres`，旧手套与 v1 预览保留用于对比。
 
 ## 眨眼素材 v1
 
@@ -22,7 +28,7 @@
 
 正常速度预览：`previews/cat-blink-v1.webp`。慢速预览：`previews/cat-blink-slow-v1.webp`。检查报告：`previews/cat-blink-v1.qa.json`。
 
-## 摸头 v2
+## 整图逐帧摸头实验 v2
 
 内置 imagegen 生成独立透明手套 `petting-glove-v1.png` 和轻微右倾的小猫 `head-pet-right-v1.png`；完整提示词保存在各自的 `.prompt.txt` 中。两张均为 1254 × 1254 RGBA PNG，手套保留整幅透明画布，使用节点位置和旋转实现抚摸，无需手套帧动画。
 

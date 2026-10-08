@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/pets/cat/idle-base-v1.png" id="2_master"]
 [ext_resource type="Texture2D" path="res://assets/pets/cat/blink-half-v1.png" id="3_half"]
 [ext_resource type="Texture2D" path="res://assets/pets/cat/blink-closed-v1.png" id="4_closed"]
-[ext_resource type="Texture2D" path="res://assets/pets/cat/petting-glove-v1.png" id="5_glove"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/petting-right-glove-v2.png" id="5_glove"]
 
 [resource]
 script = ExtResource("1_layout")
@@ -16,9 +16,19 @@ display_scale = 0.19
 body_joint = Vector2(627, 1154)
 head_joint = Vector2(627, 752)
 tail_joint = Vector2(320, 1000)
-glove_joint = Vector2(823, 275)
+glove_joint = Vector2(710, 255)
+glove_source_joint = Vector2(630, 285)
+glove_scale = 0.55
 head_cut = Vector4(627, 250, 746, 18)
 tail_cut = Vector4(810, 335, 850, 0.25)
 head_hit_uv = Rect2(0.22, 0.10, 0.64, 0.50)
 eye_left = Vector4(0.315, 0.335, 0.45, 0.48)
 eye_right = Vector4(0.545, 0.335, 0.675, 0.48)
+stroke_period = 1.0
+stroke_span = 104.0
+stroke_drop = 18.0
+hand_angles = Vector2(-0.04, 0.09)
+head_angles = Vector2(-0.012, 0.046)
+entry_offset = Vector2(125, 95)
+enter_seconds = 0.22
+exit_seconds = 0.2

@@ -33,11 +33,13 @@
 
 SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路径本身保持不变。
 
-默认分层角色共用 `idle-base-v1.png` 这张 1254 × 1254 母版。`cat_master_layer.gdshader` 用互补蒙版分出头部、身体和尾巴；眼睛区域由 `cat_eye_layer.gdshader` 单独绘制。所有零件都保留母版尺寸和坐标，无需重新生成比例各异的零件图。头部包含耳朵，眼睛跟随头部；关节与统一显示比例在 `layered_cat_layout.tres` 中配置。静态拼装与同尺寸渲染的母版比较，RGBA 可见像素差为零，报告见 `previews/layered-cat-v1.qa.json`。
+默认分层角色共用 `idle-base-v1.png` 这张 1254 × 1254 母版。`cat_master_layer.gdshader` 用互补蒙版分出头部、身体和尾巴；眼睛区域由 `cat_eye_layer.gdshader` 单独绘制。所有零件都保留母版尺寸和坐标，无需重新生成比例各异的零件图。头部包含耳朵，眼睛跟随头部；关节与统一显示比例在 `layered_cat_layout.tres` 中配置。静态拼装与同尺寸渲染的母版比较，RGBA 可见像素差为零，报告见 `previews/layered-cat-v2.qa.json`。
 
-眨眼只使用现有半闭眼、闭眼图的局部眼睛像素，过渡持续 240ms。管理器每 2–4.5 秒随机触发一次。呼吸以脚底为轴心，尾巴绕尾根轻摆。摸头以脖颈为轴心将头部连续旋转约两度，避开整图姿势混合造成的耳缘重影；脖颈背后有一块复用胸口像素的隐藏填充，用于覆盖小幅倾斜露出的接缝。这种填充适用于当前的小幅动作，大角度转头和走路仍需要补全遮挡部位或进一步拆分爪子。
+眨眼只使用现有半闭眼、闭眼图的局部眼睛像素，过渡持续 240ms。管理器每 2–4.5 秒随机触发一次。呼吸以脚底为轴心，尾巴绕尾根轻摆。摸头以脖颈为轴心将头部连续旋转，最大倾角约 2.6 度，避开整图姿势混合造成的耳缘重影；脖颈背后有一块复用胸口像素的隐藏填充，用于覆盖小幅倾斜露出的接缝。这种填充适用于当前的小幅动作，大角度转头和走路仍需要补全遮挡部位或进一步拆分爪子。
 
-头部按住左键 0.45 秒触发摸头，松开或移出头部恢复待机，释放时不会再触发点击跳跃。移动达到 8 像素优先进入拖动，摸头过程中也可转为拖动；窗口失去焦点会取消当前手势。身体长按不触发摸头。手套使用一张独立上层图片 `petting-glove-v1.png`，从右上方用 0.28 秒淡入，在 1.8 秒的循环中左右抚摸；向右时下降约 1.7 像素并轻微下斜。头部倾斜与手套同相位，松开后用 0.24 秒淡出并恢复睁眼。各部位共用固定素材，动作通过关节变换和表情组合实现。
+头部按住左键 0.45 秒触发摸头，松开或移出头部恢复待机，释放时不会再触发点击跳跃。移动达到 8 像素优先进入拖动，摸头过程中也可转为拖动；窗口失去焦点会取消当前手势。身体长按不触发摸头。手套使用一张独立上层图片 `petting-right-glove-v2.png`，表现观看者从右下方伸出的右手，手背朝向观看者、指尖朝左上方；用 0.22 秒淡入，每 1 秒完成一次往返，横向总幅度约 20 像素，向右时下降约 3.4 像素并轻微下斜。头部倾斜与手套同相位，松开后用 0.20 秒淡出并恢复睁眼。各部位共用固定素材，动作通过关节变换和表情组合实现。
+
+手套素材的锚点 `glove_source_joint` 和缩放 `glove_scale` 独立配置，因此替换图片后可以在运行时校准大小与接触位置。抚摸周期、幅度、下压、手部及头部角度、出入场位移和时间也统一放在 `layered_cat_layout.tres` 中。
 
 原始 PNG 和提示词保留在 `assets/pets/cat/`。整图逐帧方案仍可通过主场景的 `visual_scene` 切回 `sprite_cat_pet.tscn`；其资源是 `cat_frames.tres`、`blink_region.gdshader` 和 `petting_cat.gdshader`。
 
@@ -76,7 +78,7 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 
 检查也覆盖 PNG 眨眼和摸头的播放、材质恢复、动作打断，以及长按与点击、拖动、取消的手势冲突。若重新生成图片，可先用 Godot 的 `--script res://scripts/export_cat_preview.gd` 渲染三张审阅帧，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_cat_frames.py` 生成正常速度、慢速的透明 WebP 预览及一致性报告。`previews/.gdignore` 让审阅动画不进入 Godot 游戏资源导入。
 
-默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py`，生成 `previews/cat-layered-head-pet-v1.webp` 和静态拼装检查报告，包含淡入、抚摸循环和淡出。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
+默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py --version v2`，生成 `previews/cat-layered-head-pet-v2.webp` 和静态拼装检查报告，包含淡入、抚摸循环和淡出。旧版 v1 预览保留用于对比。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
 
 ## 首版验证
 

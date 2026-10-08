@@ -37,7 +37,7 @@ func _run() -> void:
 	await create_timer(0.4).timeout
 	_check(not is_equal_approx(head_angle, cat.head_pivot.rotation), "The head tilts around its joint.")
 	_check(not hand_position.is_equal_approx(cat.petting_hand.position), "The single glove texture moves independently.")
-	_check(absf(cat.head_pivot.rotation) <= 0.0351, "The head tilt remains within about two degrees.")
+	_check(absf(cat.head_pivot.rotation) <= 0.0461, "The stronger head tilt remains within about 2.7 degrees.")
 	manager.request_action(PetActions.HEAD_PET_END)
 	_check(cat._pet_exiting and manager.current_state == PetActionManager.State.IDLE, "The manager resumes idle while the visual fades out.")
 	await create_timer(0.3).timeout

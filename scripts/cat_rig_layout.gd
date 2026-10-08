@@ -12,11 +12,24 @@ extends Resource
 @export var head_joint := Vector2(627, 752)
 @export var tail_joint := Vector2(320, 1000)
 @export var glove_joint := Vector2(823, 275)
+## Source anchor and scale let a replacement glove retain its own canvas.
+@export var glove_source_joint := Vector2(823, 275)
+@export var glove_scale := 1.0
 @export var head_cut := Vector4(627, 250, 746, 18)
 @export var tail_cut := Vector4(810, 335, 850, 0.25)
 @export var head_hit_uv := Rect2(0.22, 0.10, 0.64, 0.50)
 @export var eye_left := Vector4(0.315, 0.335, 0.450, 0.480)
 @export var eye_right := Vector4(0.545, 0.335, 0.675, 0.480)
+
+@export_group("Petting motion")
+@export_range(0.3, 3.0, 0.05) var stroke_period := 1.0
+@export var stroke_span := 104.0
+@export var stroke_drop := 18.0
+@export var hand_angles := Vector2(-0.04, 0.09)
+@export var head_angles := Vector2(-0.012, 0.046)
+@export var entry_offset := Vector2(125, 95)
+@export var enter_seconds := 0.22
+@export var exit_seconds := 0.20
 
 
 func head_cut_y(pixel_x: float) -> float:

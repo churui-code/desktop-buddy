@@ -43,7 +43,8 @@ func _ready() -> void:
 	_setup_eyes()
 	var glove := $Rig/BodyPivot/PettingHand/Glove as Sprite2D
 	glove.texture = layout.glove
-	glove.position = -layout.glove_joint
+	glove.scale = Vector2.ONE * layout.glove_scale
+	glove.position = -layout.glove_source_joint * layout.glove_scale
 	_setup_neck_fill()
 	_master_image = layout.master.get_image()
 	_cache_interaction_region()
@@ -142,7 +143,7 @@ func _setup_eyes() -> void:
 
 func _setup_neck_fill() -> void:
 	# Hidden under the head at rest. Reuse existing chest pixels for the small
-	# area exposed by a two-degree tilt; this does not redraw the character.
+	# area exposed by a small tilt; this does not redraw the character.
 	var points := PackedVector2Array([Vector2(380, 745), Vector2(450, 715), Vector2(627, 710), Vector2(804, 715), Vector2(874, 745), Vector2(850, 795), Vector2(404, 795)])
 	var uvs := PackedVector2Array()
 	for index in range(points.size()):
@@ -158,8 +159,8 @@ func _update_pose() -> void:
 	var breath := (1.0 - cos(_idle_time * TAU / 2.6)) / 2.0 if _running and not _dragging else 0.0
 	body_pivot.scale = Vector2(1.0 + breath * 0.005, 1.0 - breath * 0.008)
 	tail_pivot.rotation = sin(_idle_time * TAU / 3.2) * 0.025 if _running and not _dragging else 0.0
-	var rightward := (1.0 - cos(_stroke_time * TAU / 1.8)) / 2.0
-	head_pivot.rotation = lerpf(-0.006, 0.035, rightward) * _pet_amount
+	var rightward := (1.0 - cos(_stroke_time * TAU / layout.stroke_period)) / 2.0
+	head_pivot.rotation = lerpf(layout.head_angles.x, layout.head_angles.y, rightward) * _pet_amount
 	# All facial patches inherit the head's transform, so no frame silhouette
 	# blending or double ear outlines occur.
 	var closure := maxf(_eye_closure, _pet_amount)
@@ -167,9 +168,9 @@ func _update_pose() -> void:
 	neck_fill.visible = _pet_amount > 0.001
 	petting_hand.visible = _pet_amount > 0.001
 	petting_hand.position = layout.glove_joint - layout.body_joint
-	petting_hand.position += Vector2(lerpf(-20.0, 20.0, rightward), rightward * 9.0)
-	petting_hand.position += Vector2(95.0, -74.0) * (1.0 - _pet_amount)
-	petting_hand.rotation = lerpf(-0.025, 0.045, rightward)
+	petting_hand.position += Vector2(lerpf(-layout.stroke_span / 2.0, layout.stroke_span / 2.0, rightward), rightward * layout.stroke_drop)
+	petting_hand.position += layout.entry_offset * (1.0 - _pet_amount)
+	petting_hand.rotation = lerpf(layout.hand_angles.x, layout.hand_angles.y, rightward)
 	petting_hand.modulate.a = _pet_amount
 
 
@@ -210,7 +211,7 @@ func _start_pet(request_id: int) -> void:
 	_active_id = request_id
 	_stroke_time = 0.0
 	_pet_tween = create_tween()
-	_pet_tween.tween_property(self, "_pet_amount", 1.0, 0.28).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_pet_tween.tween_property(self, "_pet_amount", 1.0, layout.enter_seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func _end_pet() -> void:
@@ -219,7 +220,7 @@ func _end_pet() -> void:
 	_kill_tween(_pet_tween)
 	_pet_exiting = true
 	_pet_tween = create_tween()
-	_pet_tween.tween_property(self, "_pet_amount", 0.0, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pet_tween.tween_property(self, "_pet_amount", 0.0, layout.exit_seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_pet_tween.finished.connect(func() -> void:
 		_pet_exiting = false
 		_cancel_foreground()
