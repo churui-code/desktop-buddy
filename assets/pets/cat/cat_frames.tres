@@ -1,0 +1,48 @@
+[gd_resource type="SpriteFrames" load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/pets/cat/idle-base-v1.png" id="1_open"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/blink-half-v1.png" id="2_half"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/blink-closed-v1.png" id="3_closed"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/head-pet-right-v1.png" id="4_head_pet"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_open")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_half")
+}, {
+"duration": 2.0,
+"texture": ExtResource("3_closed")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_half")
+}, {
+"duration": 1.0,
+"texture": ExtResource("1_open")
+}],
+"loop": false,
+"name": &"blink",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_open")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_closed")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_head_pet")
+}],
+"loop": true,
+"name": &"head_pet",
+"speed": 1.25
+}]

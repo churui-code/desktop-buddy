@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="fur" x1="0" x2=".9" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff9e8"/>
+      <stop offset="1" stop-color="#efd2a7"/>
+    </linearGradient>
+  </defs>
+  <path d="M72 101L73 53Q74 43 83 47L108 70Q128 66 148 70L173 47Q182 43 183 53L184 101Q215 126 212 173Q210 212 179 221Q128 234 77 221Q46 212 44 173Q41 126 72 101Z" fill="url(#fur)" stroke="#785c52" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M83 62L83 91Q94 80 105 76Z" fill="#edb8ae" opacity=".82"/>
+  <path d="M173 62L173 91Q162 80 151 76Z" fill="#edb8ae" opacity=".82"/>
+  <path d="M83 213Q91 221 106 220" fill="none" stroke="#c89d82" stroke-width="4" stroke-linecap="round"/>
+  <path d="M173 213Q165 221 150 220" fill="none" stroke="#c89d82" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="78" cy="164" rx="17" ry="10" fill="#f2b7ad" opacity=".56"/>
+  <ellipse cx="178" cy="164" rx="17" ry="10" fill="#f2b7ad" opacity=".56"/>
+  <path d="M65 197Q70 185 82 190Q92 194 91 211" fill="none" stroke="#785c52" stroke-width="4" stroke-linecap="round"/>
+  <path d="M191 197Q186 185 174 190Q164 194 165 211" fill="none" stroke="#785c52" stroke-width="4" stroke-linecap="round"/>
+</svg>

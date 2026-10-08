@@ -1,0 +1,43 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/layered_svg_pet_driver.gd" id="1_driver"]
+[ext_resource type="Texture2D" path="res://assets/shadow.svg" id="2_shadow"]
+[ext_resource type="Texture2D" path="res://assets/tail.svg" id="3_tail"]
+[ext_resource type="Texture2D" path="res://assets/body.svg" id="4_body"]
+[ext_resource type="Texture2D" path="res://assets/eyes.svg" id="5_eyes"]
+[ext_resource type="Texture2D" path="res://assets/mouth.svg" id="6_mouth"]
+[ext_resource type="Texture2D" path="res://assets/sparkle.svg" id="7_sparkle"]
+
+[node name="Visual" type="Node2D"]
+script = ExtResource("1_driver")
+interaction_region = PackedVector2Array(76, 51, 104, 72, 128, 65, 152, 72, 180, 51, 189, 96, 222, 126, 241, 174, 226, 212, 191, 227, 75, 230, 39, 206, 41, 133, 67, 94)
+
+[node name="Shadow" type="Sprite2D" parent="."]
+position = Vector2(0, 103)
+texture = ExtResource("2_shadow")
+
+[node name="BodyRoot" type="Node2D" parent="."]
+
+[node name="TailPivot" type="Node2D" parent="BodyRoot"]
+position = Vector2(74, 52)
+
+[node name="Tail" type="Sprite2D" parent="BodyRoot/TailPivot"]
+texture = ExtResource("3_tail")
+
+[node name="Body" type="Sprite2D" parent="BodyRoot"]
+texture = ExtResource("4_body")
+
+[node name="Eyes" type="Sprite2D" parent="BodyRoot"]
+position = Vector2(0, 8)
+texture = ExtResource("5_eyes")
+
+[node name="Mouth" type="Sprite2D" parent="BodyRoot"]
+position = Vector2(0, 43)
+texture = ExtResource("6_mouth")
+
+[node name="Sparkle" type="Sprite2D" parent="BodyRoot"]
+visible = false
+position = Vector2(71, -50)
+texture = ExtResource("7_sparkle")
+
+[node name="BreathingAnimation" type="AnimationPlayer" parent="."]

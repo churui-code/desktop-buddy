@@ -1,0 +1,43 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/sprite_frames_pet_driver.gd" id="1_driver"]
+[ext_resource type="SpriteFrames" path="res://assets/pets/cat/cat_frames.tres" id="2_frames"]
+[ext_resource type="Shader" path="res://shaders/blink_region.gdshader" id="3_shader"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/idle-base-v1.png" id="4_base"]
+[ext_resource type="Shader" path="res://shaders/petting_cat.gdshader" id="5_pet_shader"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/blink-closed-v1.png" id="6_relaxed"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/petting-glove-v1.png" id="7_glove"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_blink"]
+shader = ExtResource("3_shader")
+shader_parameter/idle_texture = ExtResource("4_base")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_petting"]
+shader = ExtResource("5_pet_shader")
+shader_parameter/idle_texture = ExtResource("4_base")
+shader_parameter/relaxed_texture = ExtResource("6_relaxed")
+shader_parameter/next_pose_texture = ExtResource("6_relaxed")
+
+[node name="SpriteCatVisual" type="Node2D"]
+script = ExtResource("1_driver")
+petting_material = SubResource("ShaderMaterial_petting")
+
+[node name="Art" type="Node2D" parent="."]
+position = Vector2(0, 101)
+
+[node name="Sprite" type="AnimatedSprite2D" parent="Art"]
+material = SubResource("ShaderMaterial_blink")
+position = Vector2(0, -101)
+scale = Vector2(0.19, 0.19)
+sprite_frames = ExtResource("2_frames")
+animation = &"idle"
+
+[node name="PettingHand" type="Node2D" parent="."]
+visible = false
+z_index = 1
+position = Vector2(36, -66)
+
+[node name="Glove" type="Sprite2D" parent="PettingHand"]
+position = Vector2(-36, 66)
+scale = Vector2(0.19, 0.19)
+texture = ExtResource("7_glove")

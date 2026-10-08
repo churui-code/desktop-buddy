@@ -1,0 +1,14 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/desktop_pet.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/pet_action_manager.gd" id="2_manager"]
+[ext_resource type="PackedScene" path="res://scenes/pets/sprite_cat_pet.tscn" id="3_visual"]
+
+[node name="DesktopPet" type="Node"]
+script = ExtResource("1_controller")
+visual_scene = ExtResource("3_visual")
+
+[node name="ActionManager" type="Node" parent="."]
+script = ExtResource("2_manager")
+
+[node name="PetMenu" type="PopupMenu" parent="."]

@@ -1,0 +1,63 @@
+{
+  "canvas": [
+    1254,
+    1254
+  ],
+  "frames": [
+    {
+      "file": "idle-base-v1.png",
+      "alpha_bbox": [
+        21,
+        17,
+        1119,
+        1254
+      ],
+      "visible_alpha_bbox": [
+        157,
+        140,
+        1000,
+        1154
+      ],
+      "silhouette_iou": 1.0,
+      "mean_rgb_difference_outside_eyes_0_to_255": 0.0
+    },
+    {
+      "file": "blink-half-v1.png",
+      "alpha_bbox": [
+        0,
+        17,
+        1242,
+        1188
+      ],
+      "visible_alpha_bbox": [
+        156,
+        140,
+        1001,
+        1154
+      ],
+      "silhouette_iou": 0.995784,
+      "mean_rgb_difference_outside_eyes_0_to_255": 2.9735
+    },
+    {
+      "file": "blink-closed-v1.png",
+      "alpha_bbox": [
+        0,
+        15,
+        1248,
+        1250
+      ],
+      "visible_alpha_bbox": [
+        156,
+        140,
+        1000,
+        1154
+      ],
+      "silhouette_iou": 0.996982,
+      "mean_rgb_difference_outside_eyes_0_to_255": 3.4115
+    }
+  ],
+  "rendered_outside_eye_max_difference": [
+    0,
+    0
+  ]
+}
