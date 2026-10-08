@@ -1,5 +1,13 @@
 # PNG 小猫动作素材
 
+## 当前默认：固定母版分层
+
+所有部位共享 `idle-base-v1.png` 原始母版，在 Godot 中通过蒙版分出身体、头部（含耳朵）、尾巴和眼睛。`layered_cat_layout.tres` 记录原图像素坐标、关节、显示比例和眼睛区域，图层素材不会重新缩放或生成。眼睛复用既有半闭眼、闭眼图的局部区域，手套继续使用独立的 `petting-glove-v1.png`。本次分层没有生成新图。
+
+静态拼装与母版在同尺寸渲染下，可见 RGBA 像素差为零。报告：`previews/layered-cat-v1.qa.json`。摸头预览：`previews/cat-layered-head-pet-v1.webp`。小幅头部倾斜通过关节旋转实现，脖颈背面复用胸口像素填充；更大的动作需要补全隐藏部位。
+
+## 眨眼素材 v1
+
 生成方式：内置 imagegen。基准图是 `idle-base-v1.png`，它作为两次眼睛编辑的共同参考。两次编辑只要求眼睛变化，完整提示词分别保存在 `blink-half-v1.prompt.txt` 和 `blink-closed-v1.prompt.txt`。
 
 | 源文件 | 状态 |

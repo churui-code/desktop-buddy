@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/desktop_pet.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/pet_action_manager.gd" id="2_manager"]
-[ext_resource type="PackedScene" path="res://scenes/pets/sprite_cat_pet.tscn" id="3_visual"]
+[ext_resource type="PackedScene" path="res://scenes/pets/layered_cat_pet.tscn" id="3_visual"]
 
 [node name="DesktopPet" type="Node"]
 script = ExtResource("1_controller")

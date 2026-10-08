@@ -1,0 +1,38 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/layered_cat_pet_driver.gd" id="1_driver"]
+[ext_resource type="Resource" path="res://assets/pets/cat/layered_cat_layout.tres" id="2_layout"]
+
+[node name="LayeredCatVisual" type="Node2D"]
+script = ExtResource("1_driver")
+layout = ExtResource("2_layout")
+
+[node name="Rig" type="Node2D" parent="."]
+
+[node name="BodyPivot" type="Node2D" parent="Rig"]
+
+[node name="TailPivot" type="Node2D" parent="Rig/BodyPivot"]
+z_index = -1
+
+[node name="Tail" type="Sprite2D" parent="Rig/BodyPivot/TailPivot"]
+centered = false
+
+[node name="Body" type="Sprite2D" parent="Rig/BodyPivot"]
+centered = false
+
+[node name="NeckFill" type="Polygon2D" parent="Rig/BodyPivot"]
+
+[node name="HeadPivot" type="Node2D" parent="Rig/BodyPivot"]
+
+[node name="Head" type="Sprite2D" parent="Rig/BodyPivot/HeadPivot"]
+centered = false
+
+[node name="Eyes" type="Sprite2D" parent="Rig/BodyPivot/HeadPivot"]
+centered = false
+
+[node name="PettingHand" type="Node2D" parent="Rig/BodyPivot"]
+visible = false
+z_index = 2
+
+[node name="Glove" type="Sprite2D" parent="Rig/BodyPivot/PettingHand"]
+centered = false

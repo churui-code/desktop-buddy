@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CatRigLayout" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/cat_rig_layout.gd" id="1_layout"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/idle-base-v1.png" id="2_master"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/blink-half-v1.png" id="3_half"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/blink-closed-v1.png" id="4_closed"]
+[ext_resource type="Texture2D" path="res://assets/pets/cat/petting-glove-v1.png" id="5_glove"]
+
+[resource]
+script = ExtResource("1_layout")
+master = ExtResource("2_master")
+half_eyes = ExtResource("3_half")
+closed_eyes = ExtResource("4_closed")
+glove = ExtResource("5_glove")
+display_scale = 0.19
+body_joint = Vector2(627, 1154)
+head_joint = Vector2(627, 752)
+tail_joint = Vector2(320, 1000)
+glove_joint = Vector2(823, 275)
+head_cut = Vector4(627, 250, 746, 18)
+tail_cut = Vector4(810, 335, 850, 0.25)
+head_hit_uv = Rect2(0.22, 0.10, 0.64, 0.50)
+eye_left = Vector4(0.315, 0.335, 0.45, 0.48)
+eye_right = Vector4(0.545, 0.335, 0.675, 0.48)

@@ -1,6 +1,6 @@
 # Desktop Buddy
 
-用 Godot 4 制作的桌面宠物首版原型。默认使用生成的奶油色小猫 PNG，待机时轻微呼吸，并播放三种眼睛状态组成的眨眼动画；点击会跳起，头部长按会出现白手套摸头，按住左键移动可拖动，右键可重置位置或退出。关闭后会记住位置。
+用 Godot 4 制作的桌面宠物原型。默认使用固定母版的奶油色小猫，运行时分出头部、身体、尾巴和眼睛，通过节点变换制作动画。待机时轻微呼吸和眨眼；点击会跳起，头部长按会出现白手套摸头，按住左键移动可拖动，右键可重置位置或退出。关闭后会记住位置。
 
 ## 运行
 
@@ -21,19 +21,25 @@
 | `scripts/pet_action_manager.gd` | 行为状态、眨眼调度、动作优先级、事件派发和完成处理 |
 | `scripts/pet_actions.gd` | 统一的动作名称 |
 | `scripts/pet_visual_driver.gd` | 可替换动画驱动的接口 |
-| `scripts/layered_svg_pet_driver.gd` | 当前分层图像的 AnimationPlayer / Tween 动画 |
+| `scripts/cat_rig_layout.gd` | 母版像素坐标、关节轴心、蒙版与显示比例的配置类型 |
+| `assets/pets/cat/layered_cat_layout.tres` | 当前小猫的素材和拼装坐标 |
+| `scripts/layered_cat_pet_driver.gd` | 默认分层小猫的关节动画与眼睛表情 |
+| `scenes/pets/layered_cat_pet.tscn` | 头部、眼睛、身体、尾巴和独立手套节点 |
+| `scripts/layered_svg_pet_driver.gd` | 原 SVG 角色的 AnimationPlayer / Tween 动画 |
 | `scenes/pets/layered_svg_pet.tscn` | 原 SVG 角色的图层、素材、窗口尺寸和点击区域 |
 | `scripts/sprite_frames_pet_driver.gd` | PNG 逐帧动作，以及待机呼吸和点击补间 |
-| `scenes/pets/sprite_cat_pet.tscn` | 默认 PNG 小猫角色 |
+| `scenes/pets/sprite_cat_pet.tscn` | 可切回的整图逐帧实验角色 |
 | `assets/pets/cat/cat_frames.tres` | 睁眼、半闭眼、闭眼的帧顺序与时长 |
 
 SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路径本身保持不变。
 
-默认 PNG 角色通过 `AnimatedSprite2D` 播放眨眼：睁眼 40ms、半闭眼 40ms、闭眼 80ms、半闭眼 40ms、睁眼 40ms，共 240ms。管理器每 2–4.5 秒随机触发一次。呼吸使用脚底为轴心的轻微缩放，脚底位置保持稳定。
+默认分层角色共用 `idle-base-v1.png` 这张 1254 × 1254 母版。`cat_master_layer.gdshader` 用互补蒙版分出头部、身体和尾巴；眼睛区域由 `cat_eye_layer.gdshader` 单独绘制。所有零件都保留母版尺寸和坐标，无需重新生成比例各异的零件图。头部包含耳朵，眼睛跟随头部；关节与统一显示比例在 `layered_cat_layout.tres` 中配置。静态拼装与同尺寸渲染的母版比较，RGBA 可见像素差为零，报告见 `previews/layered-cat-v1.qa.json`。
 
-`shaders/blink_region.gdshader` 让眨眼只影响眼部，其他像素始终来自基准图，避免 AI 编辑帧的轻微色差造成身体闪动。摸头使用 `shaders/petting_cat.gdshader`，在小猫的闭眼与右倾动作帧之间平滑混合，只改变头部，身体保留基准图。回到待机时恢复眨眼材质。手套是独立上层 Sprite2D，使用 `petting-glove-v1.png`。原始生成 PNG 完整保留。素材和提示词见 `assets/pets/cat/`，动画预览和检查结果见 `previews/`。
+眨眼只使用现有半闭眼、闭眼图的局部眼睛像素，过渡持续 240ms。管理器每 2–4.5 秒随机触发一次。呼吸以脚底为轴心，尾巴绕尾根轻摆。摸头以脖颈为轴心将头部连续旋转约两度，避开整图姿势混合造成的耳缘重影；脖颈背后有一块复用胸口像素的隐藏填充，用于覆盖小幅倾斜露出的接缝。这种填充适用于当前的小幅动作，大角度转头和走路仍需要补全遮挡部位或进一步拆分爪子。
 
-头部按住左键 0.45 秒触发摸头，松开或移出头部恢复待机，释放时不会再触发点击跳跃。移动达到 8 像素优先进入拖动，摸头过程中也可转为拖动；窗口失去焦点会取消当前手势。身体长按不触发摸头。手套从右上方用 0.28 秒淡入，随后在 1.6 秒的循环中左右抚摸；向右时下降约 1.8 像素并轻微下斜。小猫在闭眼正姿、闭眼右倾两张帧之间过渡，与手套使用相同相位。松开后用 0.24 秒淡出并恢复睁眼。进入、循环、退出各自管理，后续可在 `cat_frames.tres` 中增加小猫动作帧，并相应更新手套的相位映射。
+头部按住左键 0.45 秒触发摸头，松开或移出头部恢复待机，释放时不会再触发点击跳跃。移动达到 8 像素优先进入拖动，摸头过程中也可转为拖动；窗口失去焦点会取消当前手势。身体长按不触发摸头。手套使用一张独立上层图片 `petting-glove-v1.png`，从右上方用 0.28 秒淡入，在 1.8 秒的循环中左右抚摸；向右时下降约 1.7 像素并轻微下斜。头部倾斜与手套同相位，松开后用 0.24 秒淡出并恢复睁眼。各部位共用固定素材，动作通过关节变换和表情组合实现。
+
+原始 PNG 和提示词保留在 `assets/pets/cat/`。整图逐帧方案仍可通过主场景的 `visual_scene` 切回 `sprite_cat_pet.tscn`；其资源是 `cat_frames.tres`、`blink_region.gdshader` 和 `petting_cat.gdshader`。
 
 管理器使用 Godot 信号连接当前驱动器。它属于这只宠物实例，无需全局单例。自动眨眼仅在待机时触发；摸头会打断点击反馈，拖动会打断点击或摸头；当前点击反馈完成后恢复待机。摸头由明确的开始、结束事件控制，持续期间不被眨眼或点击打断。每次动作有唯一请求编号，旧动画的完成回调不能重置新动作的状态。
 
@@ -44,7 +50,7 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 1. 新建角色场景，根节点脚本继承 `PetVisualDriver`，所有素材和动画节点放在这个场景内。
 2. 实现 `execute(action, request_id, context)`，把统一动作映射到自己的动画执行函数；实现 `stop()` 来停止动画并清理回调。
 3. 设置 `preferred_window_size` 和 `interaction_region`。区域使用窗口左上角为原点的坐标；动画过程中若区域改变，派发 `interaction_region_changed` 信号。
-   摸头区域可设置 `head_region` 多边形，或重写 `is_head_position(window_position)`。PNG 驱动使用 `head_pet_region_uv` 椭圆并检查透明像素，随节点变换计算命中；没有头部区域的驱动不触发摸头。
+   摸头区域可设置 `head_region` 多边形，或重写 `is_head_position(window_position)`。默认驱动使用配置中的 `head_hit_uv` 椭圆、头部蒙版和透明像素，随头部节点变换计算命中；没有头部区域的驱动不触发摸头。
 4. 在主场景根节点的 `visual_scene` 属性中选择新角色场景。
 
 | 动作 | 执行约定 |
@@ -65,11 +71,12 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 
 ```sh
 /Users/churui/Downloads/Godot.app/Contents/MacOS/Godot --headless --path /Users/churui/Project/desktop-buddy --script res://tests/action_pipeline_test.gd
+/Users/churui/Downloads/Godot.app/Contents/MacOS/Godot --headless --path /Users/churui/Project/desktop-buddy --script res://tests/layered_cat_test.gd
 ```
 
 检查也覆盖 PNG 眨眼和摸头的播放、材质恢复、动作打断，以及长按与点击、拖动、取消的手势冲突。若重新生成图片，可先用 Godot 的 `--script res://scripts/export_cat_preview.gd` 渲染三张审阅帧，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_cat_frames.py` 生成正常速度、慢速的透明 WebP 预览及一致性报告。`previews/.gdignore` 让审阅动画不进入 Godot 游戏资源导入。
 
-摸头预览由 Godot 运行 `--script res://scripts/export_head_pet_preview.gd` 渲染，再用带 Pillow 的 Python 运行 `scripts/preview_head_pet.py`，生成 `previews/cat-head-pet-v2.webp`，包含淡入、抚摸循环和淡出。
+默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py`，生成 `previews/cat-layered-head-pet-v1.webp` 和静态拼装检查报告，包含淡入、抚摸循环和淡出。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
 
 ## 首版验证
 
