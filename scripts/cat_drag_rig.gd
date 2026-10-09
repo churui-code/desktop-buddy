@@ -28,6 +28,7 @@ var angular_speeds := PackedFloat64Array([0, 0, 0, 0, 0, 0])
 var _motion := Vector2.ZERO
 var skin: MeshInstance2D
 var _skin_material: ShaderMaterial
+var posture := 1.0
 
 
 func _ready() -> void:
@@ -124,6 +125,19 @@ func set_lift_pose(fold: float) -> void:
 	for index in range(1, 5):
 		pivots[index].scale = Vector2(1.0, 1.0 - clampf(fold, 0.0, 1.0) * 0.28)
 	_skin_material.set_shader_parameter("fold", clampf(fold, 0.0, 1.0))
+
+
+func set_posture(value: float) -> void:
+	posture = clampf(value, 0.0, 1.0)
+	_skin_material.set_shader_parameter("posture", posture)
+
+
+func set_body_only(value: bool) -> void:
+	_skin_material.set_shader_parameter("body_only", value)
+
+
+func set_idle_tail(value: float) -> void:
+	_skin_material.set_shader_parameter("idle_tail", value)
 
 
 func reset_motion() -> void:

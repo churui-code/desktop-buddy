@@ -31,6 +31,7 @@ var drag_rig: CatDragRig
 var _drag_tween: Tween
 var _drag_amount := 0.0
 var _drag_exiting := false
+var _release_from_posture := 1.0
 var _pickup_progress := 0.0:
 	set(value):
 		_pickup_progress = value
@@ -70,6 +71,10 @@ func _ready() -> void:
 	drag_rig.texture = preload("res://assets/pets/cat/drag-scruff-keyframe-v1.png")
 	drag_rig.position = drag_rig.anchor
 	rig.add_child(drag_rig)
+	drag_rig.set_body_only(true)
+	$Rig/BodyPivot/Body.hide()
+	$Rig/BodyPivot/TailPivot/Tail.hide()
+	head_pivot.z_index = 1
 	_update_pose()
 
 
@@ -113,7 +118,7 @@ func _play_idle() -> void:
 
 
 func _start_drag() -> void:
-	var resume_hanging := _drag_amount > 0.05
+	var resume_hanging := drag_rig.posture > 0.05
 	_cancel_foreground(true)
 	_dragging = true
 	_release_progress = 0.0
@@ -131,6 +136,7 @@ func _start_drag() -> void:
 
 
 func _end_drag(request_id: int) -> void:
+	_release_from_posture = drag_rig.posture
 	_dragging = false
 	_drag_exiting = true
 	_kill_tween(_drag_tween)
@@ -230,45 +236,50 @@ func _update_pose() -> void:
 	var pickup_squash := 0.0
 	var landing_squash := 0.0
 	if _dragging:
-		_drag_amount = smoothstep(0.56, 0.70, _pickup_progress)
-		lift = smoothstep(0.18, 0.74, _pickup_progress)
+		_drag_amount = smoothstep(0.18, 1.0, _pickup_progress)
+		lift = _drag_amount
 		pickup_squash = sin(clampf(_pickup_progress / 0.20, 0.0, 1.0) * PI) * 0.045
 	elif _drag_exiting:
-		_drag_amount = smoothstep(0.56, 0.70, _pickup_progress) * (1.0 - smoothstep(0.48, 0.56, _release_progress))
-		lift = (1.0 - smoothstep(0.20, 0.58, _release_progress)) * 0.8
+		_drag_amount = _release_from_posture * (1.0 - smoothstep(0.05, 0.70, _release_progress))
+		lift = _drag_amount
 		landing_squash = sin(smoothstep(0.48, 1.0, _release_progress) * PI) * 0.10
 	var visual_drag_amount := lerpf(_drag_amount, _pose_snapshot.get("drag", 0.0), _pose_blend_amount)
-	body_pivot.visible = visual_drag_amount < 0.999
-	body_pivot.modulate.a = 1.0 - visual_drag_amount
-	if is_instance_valid(drag_rig):
-		drag_rig.visible = visual_drag_amount > 0.001
-		drag_rig.modulate.a = visual_drag_amount
-		if _dragging or _drag_exiting:
-			drag_rig.position.y = drag_rig.anchor.y + lerpf(65.0, -35.0, _pickup_progress) + smoothstep(0.0, 0.55, _release_progress) * 35.0
-			drag_rig.set_lift_pose((1.0 - _pickup_progress) * 0.8 + smoothstep(0.15, 0.70, _release_progress) * 0.4)
-		else:
-			drag_rig.position = drag_rig.anchor
-			drag_rig.set_lift_pose(0.0)
+	body_pivot.visible = true
+	body_pivot.modulate = Color.WHITE
+	drag_rig.visible = true
+	drag_rig.modulate = Color.WHITE
 	var breath := (1.0 - cos(_idle_time * TAU / 2.6)) / 2.0 if _running and not _dragging else 0.0
 	body_pivot.scale = Vector2(1.0 + breath * 0.005, 1.0 - breath * 0.008)
 	body_pivot.scale += Vector2(pickup_squash + landing_squash - lift * 0.045, -pickup_squash - landing_squash + lift * 0.075)
 	body_pivot.position = layout.body_joint + Vector2(0, _body_offset_y)
 	if _dragging or _drag_exiting:
 		body_pivot.position.y = layout.body_joint.y - lift * 65.0
-		var idle_face := body_pivot.position + body_pivot.scale * (Vector2(627, 550) - layout.body_joint)
-		var aligned := idle_face - (Vector2(627, 450) - drag_rig.anchor).rotated(drag_rig.rotation)
-		var target := Vector2(drag_rig.anchor.x, drag_rig.position.y)
-		drag_rig.position = aligned.lerp(target, smoothstep(0.82, 1.0, _drag_amount))
-	if _pose_blend_amount > 0.0 and _pose_snapshot.get("drag", 0.0) > 0.05:
-		drag_rig.position = drag_rig.position.lerp(_pose_snapshot["drag_position"], _pose_blend_amount)
-		drag_rig.rotation = lerpf(drag_rig.rotation, _pose_snapshot["drag_rotation"], _pose_blend_amount)
 	tail_pivot.rotation = sin(_idle_time * TAU / 3.2) * 0.025 if _running and not _dragging else 0.0
 	var rightward := (1.0 - cos(_stroke_time * TAU / layout.stroke_period)) / 2.0
-	head_pivot.rotation = lerpf(layout.head_angles.x, layout.head_angles.y, rightward) * _pet_amount
+	var head_angle := lerpf(layout.head_angles.x, layout.head_angles.y, rightward) * visual_pet_amount
 	if _pose_blend_amount > 0.0:
 		body_pivot.position = body_pivot.position.lerp(_pose_snapshot["position"], _pose_blend_amount)
 		body_pivot.scale = body_pivot.scale.lerp(_pose_snapshot["scale"], _pose_blend_amount)
-		head_pivot.rotation = lerpf(head_pivot.rotation, _pose_snapshot["head"], _pose_blend_amount)
+	# The same body mesh and original head remain opaque at every key pose.
+	# Interpolate joint geometry, then add the held spring motion on top.
+	drag_rig.set_posture(visual_drag_amount)
+	drag_rig.set_lift_pose(0.0)
+	drag_rig.set_idle_tail(tail_pivot.rotation)
+	var seated_root := body_pivot.position + body_pivot.scale * (drag_rig.anchor - layout.body_joint)
+	drag_rig.position = seated_root.lerp(drag_rig.anchor + Vector2(0, -35), visual_drag_amount)
+	drag_rig.scale = body_pivot.scale.lerp(Vector2.ONE, visual_drag_amount)
+	drag_rig.rotation = drag_rig.angles[0] * visual_drag_amount
+	if _pose_blend_amount > 0.0 and _pose_snapshot.get("drag", 0.0) > 0.05:
+		drag_rig.position = drag_rig.position.lerp(_pose_snapshot["drag_position"], _pose_blend_amount)
+		drag_rig.rotation = lerpf(drag_rig.rotation, _pose_snapshot["drag_rotation"], _pose_blend_amount)
+	var seated_head := body_pivot.position + body_pivot.scale * (layout.head_joint - layout.body_joint)
+	var held_head := drag_rig.transform * (Vector2(627, 600) - drag_rig.anchor)
+	var head_position := seated_head.lerp(held_head, visual_drag_amount)
+	var head_scale := body_pivot.scale.lerp(Vector2(0.93, 0.85), visual_drag_amount)
+	var head_transform := Transform2D(head_angle * (1.0 - visual_drag_amount) + drag_rig.rotation, head_scale, 0.0, head_position)
+	if _pose_blend_amount > 0.0:
+		head_transform = head_transform.interpolate_with(_pose_snapshot["head_transform"], _pose_blend_amount)
+	head_pivot.transform = body_pivot.transform.affine_inverse() * head_transform
 	# All facial patches inherit the head's transform, so no frame silhouette
 	# blending or double ear outlines occur.
 	var closure := maxf(lerpf(_eye_closure, _pose_snapshot.get("eyes", 0.0), _pose_blend_amount), visual_pet_amount)
@@ -337,7 +348,7 @@ func _end_pet() -> void:
 
 
 func _cancel_foreground(blend_to_next := false) -> void:
-	var snapshot := {"position": body_pivot.position, "scale": body_pivot.scale, "head": head_pivot.rotation, "pet": petting_hand.modulate.a if petting_hand.visible else 0.0, "eyes": _eye_material.get_shader_parameter("closure"), "drag": drag_rig.modulate.a if is_instance_valid(drag_rig) and drag_rig.visible else 0.0}
+	var snapshot := {"position": body_pivot.position, "scale": body_pivot.scale, "head_transform": body_pivot.transform * head_pivot.transform, "pet": petting_hand.modulate.a if petting_hand.visible else 0.0, "eyes": _eye_material.get_shader_parameter("closure"), "drag": drag_rig.posture if is_instance_valid(drag_rig) else 0.0}
 	if snapshot["drag"] > 0.05:
 		snapshot["drag_position"] = drag_rig.position
 		snapshot["drag_rotation"] = drag_rig.rotation
@@ -392,6 +403,12 @@ func _cache_interaction_region() -> void:
 		if absf(area) > max_area:
 			max_area = absf(area)
 			largest = polygon
+	# The folded mesh has a slightly different foot/tail outline from the master.
+	# Include its seated envelope so visible paws also accept dragging.
+	var seated_body := PackedVector2Array([Vector2(300, 800), Vector2(910, 800), Vector2(980, 1080), Vector2(845, 1165), Vector2(435, 1165), Vector2(170, 1075), Vector2(145, 1000), Vector2(200, 930)])
+	var merged := Geometry2D.merge_polygons(largest, seated_body)
+	if merged.size() == 1:
+		largest = merged[0]
 	for point in largest:
 		_computed_region.append(head.to_global(point))
 

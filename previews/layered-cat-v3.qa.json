@@ -1,0 +1,16 @@
+{
+  "source_canvas": [
+    1254,
+    1254
+  ],
+  "head_comparison_rows": 175,
+  "body_comparison": "excluded: body uses the unified mesh",
+  "render_size": [
+    320,
+    320
+  ],
+  "head_alpha_max_difference": 0,
+  "head_visible_channel_max_difference": 0,
+  "head_visible_mean_channel_difference": 0.0,
+  "head_changed_visible_pixels": 0
+}

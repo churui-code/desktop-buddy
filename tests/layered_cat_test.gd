@@ -17,6 +17,7 @@ func _run() -> void:
 	var original_head_texture := cat.head.texture
 	_check(cat.head.texture == cat.layout.master, "The head reuses the unchanged master pixels.")
 	_check(cat.get_interaction_region().size() >= 3, "The layered rig provides the cat silhouette.")
+	_check(Geometry2D.is_point_in_polygon(cat.head.to_global(Vector2(435, 1130)), cat.get_interaction_region()), "The folded skin's feet remain inside the draggable region.")
 	_check(cat.is_head_position(cat.head.to_global(Vector2(627, 330))), "The forehead belongs to the head hit region.")
 	_check(not cat.is_head_position(cat.head.to_global(Vector2(627, 990))), "The belly is not a head target.")
 	var completions: Array[StringName] = []
@@ -55,7 +56,7 @@ func _run() -> void:
 	manager.request_action(PetActions.DRAG_START)
 	await cat._drag_tween.finished
 	_check(manager.current_state == PetActionManager.State.DRAGGING and not cat.petting_hand.visible, "Dragging cancels petting and clears the glove.")
-	_check(cat.drag_rig.visible and not cat.body_pivot.visible, "Dragging uses the separately layered hanging pose.")
+	_check(cat.drag_rig.visible and cat.body_pivot.visible and cat.drag_rig.posture == 1.0, "Dragging unfolds the same skin while retaining the original head.")
 	_check(cat.drag_rig.skin.visible and is_zero_approx(cat.head_pivot.rotation), "Dragging uses the hanging skin and clears the old head gesture.")
 	manager.request_action(PetActions.DRAG_END)
 	manager.request_action(PetActions.BLINK)

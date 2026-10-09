@@ -1,0 +1,20 @@
+{
+  "source_canvas": [
+    1254,
+    1254
+  ],
+  "render_size": [
+    320,
+    320
+  ],
+  "body_geometry": "one connected mesh interpolating seated and hanging endpoints",
+  "minimum_body_opacity": 1.0,
+  "minimum_head_opacity": 1.0,
+  "original_head_texture_retained": true,
+  "minimum_posture": 0.0,
+  "maximum_posture": 1.0,
+  "animation_frame_count": 144,
+  "opaque_viewport_edge_pixels": 0,
+  "opaque_pixels_outside_native_256_window": 0,
+  "native_window_alpha_threshold": 3
+}

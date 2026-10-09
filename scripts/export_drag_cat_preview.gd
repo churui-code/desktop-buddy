@@ -17,22 +17,16 @@ func _run() -> void:
 	viewport.add_child(visual)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(FRAME_DIR))
 	visual.stop()
-	visual._drag_amount = 1.0
-	visual._update_pose()
 	await RenderingServer.frame_post_draw
 	viewport.get_texture().get_image().save_png(FRAME_DIR + "/assembled-rest.png")
-	visual.visible = false
-	var reference := Sprite2D.new()
-	reference.texture = visual.drag_rig.texture
-	reference.position = Vector2(viewport.size) / 2.0
-	reference.scale = Vector2.ONE * visual.layout.display_scale
-	viewport.add_child(reference)
-	await RenderingServer.frame_post_draw
-	viewport.get_texture().get_image().save_png(FRAME_DIR + "/master-rest.png")
-	reference.queue_free()
-	visual.visible = true
+	visual._dragging = true
+	for step in range(5):
+		visual._pickup_progress = float(step) / 4.0
+		await RenderingServer.frame_post_draw
+		viewport.get_texture().get_image().save_png("%s/pose-%d.png" % [FRAME_DIR, step])
 	visual.stop()
 	visual.execute(PetActions.IDLE, 1, {})
+	var samples: Array[Dictionary] = []
 	for index in range(144):
 		if index == 8:
 			visual.execute(PetActions.DRAG_START, 2, {})
@@ -47,7 +41,10 @@ func _run() -> void:
 			visual.execute(PetActions.IDLE, 4, {})
 		await create_timer(1.0 / 24.0).timeout
 		await RenderingServer.frame_post_draw
+		samples.append({"posture": visual.drag_rig.posture, "body_alpha": visual.drag_rig.modulate.a, "head_alpha": visual.body_pivot.modulate.a * visual.head.modulate.a, "same_head_texture": visual.head.texture == visual.layout.master})
 		viewport.get_texture().get_image().save_png("%s/%03d.png" % [FRAME_DIR, index])
+	var report := FileAccess.open(FRAME_DIR + "/pose-samples.json", FileAccess.WRITE)
+	report.store_string(JSON.stringify(samples))
 	visual.stop()
 	# An exploded preview shows the seven masks at a shared scale and origin.
 	visual.visible = false
@@ -67,6 +64,6 @@ func _run() -> void:
 		label.text = CatDragRig.PART_NAMES[index]
 		viewport.add_child(label)
 	await RenderingServer.frame_post_draw
-	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v2.png")
+	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v3.png")
 	print("Rendered split drag pose, directional swing and settling: ", FRAME_DIR)
 	quit()

@@ -2,9 +2,9 @@
 
 ## 当前默认：固定母版分层
 
-小猫各部位共享 `idle-base-v1.png` 原始母版，在 Godot 中通过蒙版分出身体、头部（含耳朵）、尾巴和眼睛。`layered_cat_layout.tres` 记录原图像素坐标、关节、显示比例和眼睛区域，猫的图层素材不会重新生成。眼睛复用既有半闭眼、闭眼图的局部区域，手套使用独立的 `petting-right-glove-v2.png`。
+头部（含耳朵）与眼睛共享 `idle-base-v1.png` 原始母版，在 Godot 中通过蒙版分层；身体、四肢与尾巴使用 `drag-scruff-keyframe-v1.png` 的连续网格，待机和拖拽通过坐姿与悬空端点变形衔接。`layered_cat_layout.tres` 记录原图像素坐标、关节、显示比例和眼睛区域，猫的图层素材不会重新生成。眼睛复用既有半闭眼、闭眼图的局部区域，手套使用独立的 `petting-right-glove-v2.png`。
 
-静态拼装与母版在同尺寸渲染下，可见 RGBA 像素差为零。报告：`previews/layered-cat-v2.qa.json`。摸头预览：`previews/cat-layered-head-pet-v2.webp`。小幅头部倾斜通过关节旋转实现，脖颈背面复用胸口像素填充；更大的动作需要补全隐藏部位。
+v3 原头部与母版在同尺寸渲染下，可见 RGBA 像素差为零；统一网格调整了身体的坐姿轮廓。报告：`previews/layered-cat-v3.qa.json`。摸头预览：`previews/cat-layered-head-pet-v3.webp`。旧版整猫母版拼装报告保留在 v2。小幅头部倾斜通过关节旋转实现，脖颈背面复用胸口像素填充；更大的动作需要补全隐藏部位。
 
 ### 第一人称右手与抚摸调整
 
@@ -16,9 +16,9 @@
 
 `drag-scruff-keyframe-v1.png` 是用户确认的被猫妈妈提住后颈的悬空姿势。`CatDragRig` 在同一张 1254 × 1254 原图中划分头、躯干、两条前腿、两条后腿和尾巴的区域和轴心。当前使用 `cat_drag_skin.gdshader` 的连续网格和软权重控制这些关节，肩部、髋部保持连接，臀部随两侧大腿变形。`cat_drag_layer.gdshader` 用于展示各区域的拆分；素材尺寸与拼装位置沿用源图坐标。
 
-早期补片 `drag-torso-underlay-v1.png` 由内置 imagegen 参考悬空关键帧生成，现保留用于对比。当前拖拽的所有可见像素直接来自悬空原图；连续蒙皮消除补片在两腿之间露出的问题。两张源图均保留透明画布，完整提示词见同名 `.prompt.txt`。
+早期补片 `drag-torso-underlay-v1.png` 由内置 imagegen 参考悬空关键帧生成，现保留用于对比。当前身体的所有可见像素直接来自悬空原图，头部沿用待机母版；连续蒙皮消除补片在两腿之间露出的问题。两张源图均保留透明画布，完整提示词见同名 `.prompt.txt`。
 
-七区域拆分图：`previews/cat-drag-parts-v2.png`。动画预览：`previews/cat-drag-swing-v2.webp`。检查报告：`previews/drag-cat-v2.qa.json`。静态网格渲染与关键帧参考的最大通道差不超过 2/255。动画根据拖动速度驱动独立弹簧，支持反向滞后和停住余摆；抓起包含轻压、提起和四肢展开，放下包含下落、落地压缩和回弹。这些动作使用起始与结束姿势插值，当前适用于正面拖拽。
+原悬空素材七区域拆分图：`previews/cat-drag-parts-v3.png`。动画预览：`previews/cat-drag-swing-v3.webp`。端点与中间姿势：`previews/cat-pickup-poses-v3.png`。检查报告：`previews/drag-cat-v3.qa.json`，验证猫身、头部透明度全程为 100%，头部素材固定，姿势覆盖坐姿与悬空端点，摆动不超出窗口。动画根据拖动速度驱动独立弹簧，支持反向滞后和停住余摆；抓起包含轻压、提起和四肢展开，放下包含下落、落地压缩和回弹。这些动作使用起始与结束姿势的几何插值，不使用两套猫图的透明混合；提起中途释放沿用当前姿势，落地中途重新抓起保留惯性。当前适用于正面拖拽。
 
 ## 眨眼素材 v1
 
