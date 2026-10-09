@@ -27,6 +27,10 @@ var _dragging := false
 var _running := false
 var _active_action: StringName = &""
 var _active_id := 0
+var drag_rig: CatDragRig
+var _drag_tween: Tween
+var _drag_amount := 0.0
+var _drag_exiting := false
 
 
 func _ready() -> void:
@@ -48,6 +52,10 @@ func _ready() -> void:
 	_setup_neck_fill()
 	_master_image = layout.master.get_image()
 	_cache_interaction_region()
+	drag_rig = CatDragRig.new()
+	drag_rig.texture = preload("res://assets/pets/cat/drag-scruff-keyframe-v1.png")
+	drag_rig.position = drag_rig.anchor
+	rig.add_child(drag_rig)
 	_update_pose()
 
 
@@ -58,6 +66,8 @@ func _process(delta: float) -> void:
 		_idle_time += delta
 		if _pet_amount > 0.0:
 			_stroke_time += delta
+	if _dragging or _drag_exiting:
+		drag_rig.advance(delta)
 	_update_pose()
 
 
@@ -65,12 +75,12 @@ func execute(action: StringName, request_id: int, _context: Dictionary) -> void:
 	_running = true
 	match action:
 		PetActions.IDLE:
-			if not _pet_exiting:
+			if not _pet_exiting and not _drag_exiting:
 				_cancel_foreground()
 				_dragging = false
 				body_pivot.modulate = Color.WHITE
 		PetActions.BLINK:
-			if not _pet_exiting:
+			if not _pet_exiting and not _drag_exiting:
 				_play_blink(request_id)
 		PetActions.CLICK:
 			_play_click(request_id)
@@ -81,10 +91,23 @@ func execute(action: StringName, request_id: int, _context: Dictionary) -> void:
 		PetActions.DRAG_START:
 			_cancel_foreground()
 			_dragging = true
-			body_pivot.modulate = Color(0.92, 0.92, 0.92)
+			drag_rig.reset_motion()
+			_drag_tween = create_tween()
+			_drag_tween.tween_property(self, "_drag_amount", 1.0, 0.12).set_trans(Tween.TRANS_SINE)
+			interaction_region_changed.emit(PackedVector2Array([Vector2.ZERO, Vector2(preferred_window_size.x, 0), Vector2(preferred_window_size), Vector2(0, preferred_window_size.y)]))
 		PetActions.DRAG_END:
 			_dragging = false
-			body_pivot.modulate = Color.WHITE
+			_drag_exiting = true
+			_kill_tween(_drag_tween)
+			drag_rig.set_drag_velocity(Vector2.ZERO)
+			_drag_tween = create_tween()
+			_drag_tween.tween_property(self, "_drag_amount", 0.0, 0.18).set_trans(Tween.TRANS_SINE)
+			_drag_tween.finished.connect(func() -> void:
+				_drag_exiting = false
+				drag_rig.reset_motion()
+				_update_pose()
+				interaction_region_changed.emit(get_interaction_region())
+			)
 			_idle_time = 0.0
 			_update_pose()
 			action_finished.emit(action, request_id)
@@ -98,6 +121,12 @@ func stop() -> void:
 	_idle_time = 0.0
 	body_pivot.modulate = Color.WHITE
 	_update_pose()
+	interaction_region_changed.emit(get_interaction_region())
+
+
+func update_drag_motion(velocity: Vector2, _delta: float) -> void:
+	if _dragging:
+		drag_rig.set_drag_velocity(velocity)
 
 
 func get_interaction_region() -> PackedVector2Array:
@@ -105,6 +134,8 @@ func get_interaction_region() -> PackedVector2Array:
 
 
 func is_head_position(window_position: Vector2) -> bool:
+	if _dragging or _drag_exiting:
+		return false
 	if not head_region.is_empty():
 		return super.is_head_position(window_position)
 	var pixel := head.to_local(window_position)
@@ -156,6 +187,11 @@ func _setup_neck_fill() -> void:
 
 
 func _update_pose() -> void:
+	body_pivot.visible = _drag_amount < 0.999
+	body_pivot.modulate.a = 1.0 - _drag_amount
+	if is_instance_valid(drag_rig):
+		drag_rig.visible = _drag_amount > 0.001
+		drag_rig.modulate.a = _drag_amount
 	var breath := (1.0 - cos(_idle_time * TAU / 2.6)) / 2.0 if _running and not _dragging else 0.0
 	body_pivot.scale = Vector2(1.0 + breath * 0.005, 1.0 - breath * 0.008)
 	tail_pivot.rotation = sin(_idle_time * TAU / 3.2) * 0.025 if _running and not _dragging else 0.0
@@ -229,6 +265,14 @@ func _end_pet() -> void:
 
 
 func _cancel_foreground() -> void:
+	_kill_tween(_drag_tween)
+	_drag_tween = null
+	_drag_exiting = false
+	_drag_amount = 0.0
+	_dragging = false
+	if is_instance_valid(drag_rig):
+		drag_rig.reset_motion()
+		interaction_region_changed.emit(get_interaction_region())
 	_kill_tween(_blink_tween)
 	_kill_tween(_click_tween)
 	_kill_tween(_pet_tween)

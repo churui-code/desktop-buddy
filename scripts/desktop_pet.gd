@@ -13,6 +13,7 @@ var visual_driver: PetVisualDriver
 var window_size := Vector2i(256, 256)
 var _gesture := PetPointerGesture.new()
 var _press_window := Vector2i.ZERO
+var _last_drag_window := Vector2i.ZERO
 
 
 func _ready() -> void:
@@ -44,6 +45,10 @@ func _process(delta: float) -> void:
 		_gesture.finish(mouse, on_head)
 		return
 	_gesture.update(mouse, delta, on_head)
+	if _gesture.state == PetPointerGesture.State.DRAGGING:
+		var displacement := get_window().position - _last_drag_window
+		visual_driver.update_drag_motion(Vector2(displacement) / maxf(delta, 0.001), delta)
+		_last_drag_window = get_window().position
 
 
 func _input(event: InputEvent) -> void:
@@ -53,6 +58,7 @@ func _input(event: InputEvent) -> void:
 	if mouse_event.button_index == MOUSE_BUTTON_LEFT:
 		if mouse_event.pressed:
 			_press_window = get_window().position
+			_last_drag_window = _press_window
 			_gesture.begin(DisplayServer.mouse_get_position(), mouse_event.position, visual_driver.is_head_position(mouse_event.position))
 		else:
 			var mouse := DisplayServer.mouse_get_position()

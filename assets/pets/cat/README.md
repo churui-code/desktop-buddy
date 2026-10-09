@@ -12,6 +12,14 @@
 
 手套仍只有一张固定图片。抚摸周期为 1 秒，显示时横向总幅度约 20 像素，向右下压约 3.4 像素；猫头最大倾角约 2.6 度。所有动作参数位于 `layered_cat_layout.tres`，旧手套与 v1 预览保留用于对比。
 
+## 悬空拖动与七层拆分
+
+`drag-scruff-keyframe-v1.png` 是用户确认的被猫妈妈提住后颈的悬空姿势。`cat_drag_layer.gdshader` 从同一张 1254 × 1254 原图分出头、躯干、两条前腿、两条后腿和尾巴；`CatDragRig` 为各层设置独立轴心，沿用源图坐标，素材大小与拼装位置不靠再次生图匹配。
+
+`drag-torso-underlay-v1.png` 由内置 imagegen 参考悬空关键帧生成，移除四肢和尾巴后补全躯干。运行时仅使用其躯干区域，在运动露出关节背面时覆盖接缝，原图头部和四肢保持不变。两张源图均保留透明画布，完整提示词见同名 `.prompt.txt`。
+
+七层拆分图：`previews/cat-drag-parts-v1.png`。动画预览：`previews/cat-drag-swing-v1.webp`。检查报告：`previews/drag-cat-v1.qa.json`。中立拼装与关键帧的可见像素差为零。动画根据拖动速度驱动独立弹簧，保存角速度并用阻尼衰减，支持反向拖动时的滞后和停住后的余摆。此蒙版与背面补全适用于当前有限幅度的正面摆动。
+
 ## 眨眼素材 v1
 
 生成方式：内置 imagegen。基准图是 `idle-base-v1.png`，它作为两次眼睛编辑的共同参考。两次编辑只要求眼睛变化，完整提示词分别保存在 `blink-half-v1.prompt.txt` 和 `blink-closed-v1.prompt.txt`。

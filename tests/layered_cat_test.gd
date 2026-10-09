@@ -55,8 +55,12 @@ func _run() -> void:
 	manager.request_action(PetActions.DRAG_START)
 	await create_timer(0.3).timeout
 	_check(manager.current_state == PetActionManager.State.DRAGGING and not cat.petting_hand.visible, "Dragging cancels petting and clears the glove.")
+	_check(cat.drag_rig.visible and not cat.body_pivot.visible, "Dragging uses the separately layered hanging pose.")
 	_check(cat.body_pivot.scale == Vector2.ONE and is_zero_approx(cat.head_pivot.rotation), "Dragging restores the rig's neutral joints.")
 	manager.request_action(PetActions.DRAG_END)
+	manager.request_action(PetActions.BLINK)
+	_check(cat._drag_exiting, "A scheduled blink cannot interrupt drag release.")
+	await cat._drag_tween.finished
 	manager.request_action(PetActions.BLINK)
 	await create_timer(0.35).timeout
 	_check(completions.count(PetActions.BLINK) == 2, "Blinking resumes after petting and dragging.")

@@ -24,6 +24,7 @@
 | `scripts/cat_rig_layout.gd` | 母版像素坐标、关节轴心、蒙版与显示比例的配置类型 |
 | `assets/pets/cat/layered_cat_layout.tres` | 当前小猫的素材和拼装坐标 |
 | `scripts/layered_cat_pet_driver.gd` | 默认分层小猫的关节动画与眼睛表情 |
+| `scripts/cat_drag_rig.gd` | 悬空姿势的七个图层、独立关节和惯性弹簧 |
 | `scenes/pets/layered_cat_pet.tscn` | 头部、眼睛、身体、尾巴和独立手套节点 |
 | `scripts/layered_svg_pet_driver.gd` | 原 SVG 角色的 AnimationPlayer / Tween 动画 |
 | `scenes/pets/layered_svg_pet.tscn` | 原 SVG 角色的图层、素材、窗口尺寸和点击区域 |
@@ -40,6 +41,10 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 头部按住左键 0.45 秒触发摸头，松开或移出头部恢复待机，释放时不会再触发点击跳跃。移动达到 8 像素优先进入拖动，摸头过程中也可转为拖动；窗口失去焦点会取消当前手势。身体长按不触发摸头。手套使用一张独立上层图片 `petting-right-glove-v2.png`，表现观看者从右下方伸出的右手，手背朝向观看者、指尖朝左上方；用 0.22 秒淡入，每 1 秒完成一次往返，横向总幅度约 20 像素，向右时下降约 3.4 像素并轻微下斜。头部倾斜与手套同相位，松开后用 0.20 秒淡出并恢复睁眼。各部位共用固定素材，动作通过关节变换和表情组合实现。
 
 手套素材的锚点 `glove_source_joint` 和缩放 `glove_scale` 独立配置，因此替换图片后可以在运行时校准大小与接触位置。抚摸周期、幅度、下压、手部及头部角度、出入场位移和时间也统一放在 `layered_cat_layout.tres` 中。
+
+拖动时切换到被提住后颈的悬空姿势 `drag-scruff-keyframe-v1.png`。`CatDragRig` 用原图坐标蒙版分成头、躯干、左右前爪、左右后腿、尾巴七层，各层保留相同画布和显示比例。中立姿势拼装与关键帧的可见像素差为零。运动时，另用 `drag-torso-underlay-v1.png` 补全四肢后方的毛色，避免转动时露出肩部、髋部接缝。
+
+窗口控制器将实际窗口位移换算为速度，通过 `PetVisualDriver.update_drag_motion()` 连续传给动画驱动；动作开始和结束仍由管理器统一派发。身体围绕后颈摆动，四肢和尾巴分别使用有阻尼的弹簧积分，保存角速度，反向拖动不会瞬间反向，停住后会继续摆动再衰减。前爪、后腿、尾巴的响应速度不同，尾巴最慢。弹性、阻尼、幅度和输入速度阈值集中在 `CatDragRig` 的导出属性中；积分采用小步长，并限制极端输入和倾角。进入与释放姿势分别过渡 0.12 / 0.18 秒，新的拖动、点击或摸头会取消旧的过渡。
 
 原始 PNG 和提示词保留在 `assets/pets/cat/`。整图逐帧方案仍可通过主场景的 `visual_scene` 切回 `sprite_cat_pet.tscn`；其资源是 `cat_frames.tres`、`blink_region.gdshader` 和 `petting_cat.gdshader`。
 
@@ -74,11 +79,14 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 ```sh
 /Users/churui/Downloads/Godot.app/Contents/MacOS/Godot --headless --path /Users/churui/Project/desktop-buddy --script res://tests/action_pipeline_test.gd
 /Users/churui/Downloads/Godot.app/Contents/MacOS/Godot --headless --path /Users/churui/Project/desktop-buddy --script res://tests/layered_cat_test.gd
+/Users/churui/Downloads/Godot.app/Contents/MacOS/Godot --headless --path /Users/churui/Project/desktop-buddy --script res://tests/drag_rig_test.gd
 ```
 
 检查也覆盖 PNG 眨眼和摸头的播放、材质恢复、动作打断，以及长按与点击、拖动、取消的手势冲突。若重新生成图片，可先用 Godot 的 `--script res://scripts/export_cat_preview.gd` 渲染三张审阅帧，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_cat_frames.py` 生成正常速度、慢速的透明 WebP 预览及一致性报告。`previews/.gdignore` 让审阅动画不进入 Godot 游戏资源导入。
 
 默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py --version v2`，生成 `previews/cat-layered-head-pet-v2.webp` 和静态拼装检查报告，包含淡入、抚摸循环和淡出。旧版 v1 预览保留用于对比。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
+
+拖动预览使用 `--script res://scripts/export_drag_cat_preview.gd` 渲染，再运行 `scripts/preview_drag_cat.py`，输出 `previews/cat-drag-swing-v1.webp` 和 `previews/drag-cat-v1.qa.json`。预览包含往返摆动、停住后的惯性衰减以及释放；报告检查中立拼装一致性和画面边缘裁切。七层拆分图见 `previews/cat-drag-parts-v1.png`。拖动测试覆盖速度驱动、独立滞后、反向惯性、停住回稳、极端输入上限和过渡取消。
 
 ## 首版验证
 

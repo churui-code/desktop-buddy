@@ -23,6 +23,11 @@ func stop() -> void:
 	pass
 
 
+## Continuous native-window movement, separate from action state changes.
+func update_drag_motion(_velocity: Vector2, _delta: float) -> void:
+	pass
+
+
 func get_preferred_window_size() -> Vector2i:
 	return preferred_window_size
 
