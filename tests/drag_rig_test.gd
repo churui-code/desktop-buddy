@@ -10,6 +10,13 @@ func _run() -> void:
 	root.add_child(cat)
 	cat.set_process(false)
 	var rig := cat.drag_rig
+	_check(rig.skin.texture == cat.layout.master and rig.master_tail.texture == cat.layout.master, "Seated limbs and the separate tail retain the original idle atlas.")
+	for index in range(60):
+		cat._idle_time = float(index) / 10.0
+		cat._update_pose()
+		_check(rig.posture == 0.0 and rig.master_tail.transform.is_equal_approx(Transform2D(0, -rig.anchor)), "Idle breathing and tail motion cannot activate a compressed hanging pose.")
+	cat._idle_time = 0.0
+	cat._update_pose()
 	_check(rig.pivots.size() == 7, "Head, torso, four limbs and tail have independent joints.")
 	for pivot in rig.pivots:
 		_check(pivot.get_child(0).texture == rig.texture, "All parts retain the same pose texture and scale.")

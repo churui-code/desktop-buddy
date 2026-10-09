@@ -1,0 +1,17 @@
+{
+  "source_canvas": [
+    1254,
+    1254
+  ],
+  "body_comparison": "full original seated atlas, including limbs and tail",
+  "render_size": [
+    320,
+    320
+  ],
+  "rest_alpha_max_difference": 2,
+  "rest_visible_channel_max_difference": 2,
+  "rest_visible_mean_channel_difference": 0.009246088193456615,
+  "rest_changed_visible_pixels": 614,
+  "idle_phases_compared": 16,
+  "idle_cycle_max_visible_channel_difference": 2
+}

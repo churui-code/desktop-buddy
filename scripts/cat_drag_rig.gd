@@ -3,6 +3,7 @@ extends Node2D
 
 ## Shared full-size pose: separate masks and joints, no resized/generated limbs.
 @export var texture: Texture2D
+@export var seated_master: Texture2D
 @export var anchor := Vector2(627, 160)
 @export var max_body_angle := 0.20
 @export var max_limb_angle := 0.30
@@ -22,6 +23,14 @@ const REGIONS := [
 	Vector2(329, 850), Vector2(401, 843), Vector2(447, 867), Vector2(459, 923), Vector2(470, 989), Vector2(489, 1038), Vector2(507, 1099), Vector2(489, 1189), Vector2(389, 1203), Vector2(327, 1160), Vector2(310, 1033), Vector2(306, 911),
 ]
 
+const SEATED_REGIONS := [
+	Vector2(445, 825), Vector2(505, 835), Vector2(565, 885), Vector2(610, 960), Vector2(638, 1045), Vector2(635, 1155), Vector2(560, 1175), Vector2(475, 1165), Vector2(450, 1090), Vector2(420, 1005), Vector2(420, 935), Vector2(430, 875),
+	Vector2(810, 825), Vector2(750, 835), Vector2(690, 885), Vector2(645, 960), Vector2(617, 1045), Vector2(620, 1155), Vector2(695, 1175), Vector2(780, 1165), Vector2(805, 1090), Vector2(835, 1005), Vector2(835, 935), Vector2(825, 875),
+	Vector2(300, 825), Vector2(400, 835), Vector2(470, 905), Vector2(470, 1020), Vector2(490, 1105), Vector2(460, 1155), Vector2(400, 1160), Vector2(330, 1135), Vector2(295, 1090), Vector2(280, 1020), Vector2(285, 930), Vector2(300, 875),
+	Vector2(955, 825), Vector2(855, 835), Vector2(785, 905), Vector2(785, 1020), Vector2(765, 1105), Vector2(795, 1155), Vector2(855, 1160), Vector2(925, 1135), Vector2(960, 1090), Vector2(975, 1020), Vector2(970, 930), Vector2(955, 875),
+	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
+]
+
 var pivots: Array[Node2D] = []
 var angles := PackedFloat32Array([0, 0, 0, 0, 0, 0])
 var angular_speeds := PackedFloat64Array([0, 0, 0, 0, 0, 0])
@@ -29,6 +38,9 @@ var _motion := Vector2.ZERO
 var skin: MeshInstance2D
 var _skin_material: ShaderMaterial
 var posture := 1.0
+var master_tail: MeshInstance2D
+var _tail_material: ShaderMaterial
+var _idle_tail := 0.0
 
 
 func _ready() -> void:
@@ -84,14 +96,26 @@ func _setup_skin() -> void:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	skin = MeshInstance2D.new()
 	skin.mesh = mesh
-	skin.texture = texture
+	skin.texture = seated_master if seated_master else texture
 	skin.position = -anchor
 	_skin_material = ShaderMaterial.new()
-	_skin_material.shader = preload("res://shaders/cat_drag_skin.gdshader")
+	_skin_material.shader = preload("res://shaders/cat_master_skin.gdshader") if seated_master else preload("res://shaders/cat_drag_skin.gdshader")
 	_skin_material.set_shader_parameter("regions", PackedVector2Array(REGIONS))
 	_skin_material.set_shader_parameter("joints", PackedVector2Array(JOINTS))
 	skin.material = _skin_material
 	add_child(skin)
+	if seated_master:
+		_skin_material.set_shader_parameter("held_texture", texture)
+		_skin_material.set_shader_parameter("seated_regions", PackedVector2Array(SEATED_REGIONS))
+		master_tail = MeshInstance2D.new()
+		master_tail.mesh = mesh
+		master_tail.texture = seated_master
+		master_tail.position = -anchor
+		master_tail.z_index = -1
+		_tail_material = _skin_material.duplicate() as ShaderMaterial
+		_tail_material.set_shader_parameter("tail_only", true)
+		master_tail.material = _tail_material
+		add_child(master_tail)
 
 
 func set_drag_velocity(velocity: Vector2) -> void:
@@ -118,26 +142,40 @@ func advance(delta: float) -> void:
 	# Head follows the scruff pivot with the torso; keep this neck seam closed.
 	pivots[6].rotation = 0.0
 	_skin_material.set_shader_parameter("angles", angles)
+	_update_master_tail()
 
 
 func set_lift_pose(fold: float) -> void:
 	# Legs unfold from a tucked pose as weight transfers to the scruff.
 	for index in range(1, 5):
 		pivots[index].scale = Vector2(1.0, 1.0 - clampf(fold, 0.0, 1.0) * 0.28)
-	_skin_material.set_shader_parameter("fold", clampf(fold, 0.0, 1.0))
+	if not seated_master:
+		_skin_material.set_shader_parameter("fold", clampf(fold, 0.0, 1.0))
 
 
 func set_posture(value: float) -> void:
 	posture = clampf(value, 0.0, 1.0)
-	_skin_material.set_shader_parameter("posture", posture)
+	if seated_master:
+		_skin_material.set_shader_parameter("posture", posture)
+	_update_master_tail()
 
 
 func set_body_only(value: bool) -> void:
-	_skin_material.set_shader_parameter("body_only", value)
+	if not seated_master:
+		_skin_material.set_shader_parameter("body_only", value)
 
 
 func set_idle_tail(value: float) -> void:
-	_skin_material.set_shader_parameter("idle_tail", value)
+	_idle_tail = value
+	_update_master_tail()
+
+
+func _update_master_tail() -> void:
+	if not is_instance_valid(master_tail):
+		return
+	_tail_material.set_shader_parameter("posture", posture)
+	_tail_material.set_shader_parameter("angles", angles)
+	_tail_material.set_shader_parameter("idle_tail", _idle_tail)
 
 
 func reset_motion() -> void:
@@ -150,3 +188,4 @@ func reset_motion() -> void:
 		pivot.rotation = 0.0
 	set_lift_pose(0.0)
 	_skin_material.set_shader_parameter("angles", angles)
+	_update_master_tail()

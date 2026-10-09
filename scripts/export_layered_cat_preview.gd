@@ -30,6 +30,32 @@ func _run() -> void:
 	viewport.get_texture().get_image().save_png(FRAME_DIR + "/master-rest.png")
 	reference.queue_free()
 	visual.visible = true
+	# Compare a full idle cycle against independent, undeformed master sprites.
+	visual.set_process(false)
+	visual.execute(PetActions.IDLE, 1, {})
+	var original_body := visual.get_node("Rig/BodyPivot/Body") as Sprite2D
+	var original_tail := visual.get_node("Rig/BodyPivot/TailPivot/Tail") as Sprite2D
+	var tail_position := original_tail.position
+	var tail_joint := visual.tail_pivot.position
+	for phase in range(16):
+		visual._idle_time = float(phase) * 0.2
+		visual._update_pose()
+		await RenderingServer.frame_post_draw
+		viewport.get_texture().get_image().save_png("%s/idle-%02d.png" % [FRAME_DIR, phase])
+		visual.drag_rig.hide()
+		original_body.show()
+		original_tail.show()
+		original_tail.position = -Vector2(280, 1080)
+		visual.tail_pivot.position = Vector2(280, 1080) - visual.layout.body_joint
+		await RenderingServer.frame_post_draw
+		viewport.get_texture().get_image().save_png("%s/idle-reference-%02d.png" % [FRAME_DIR, phase])
+		visual.drag_rig.show()
+		original_body.hide()
+		original_tail.hide()
+		original_tail.position = tail_position
+		visual.tail_pivot.position = tail_joint
+	visual.stop()
+	visual.set_process(true)
 	visual.execute(PetActions.IDLE, 1, {})
 	for index in range(80):
 		if index == 6:

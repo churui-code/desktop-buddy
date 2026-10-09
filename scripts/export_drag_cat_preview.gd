@@ -24,6 +24,22 @@ func _run() -> void:
 		visual._pickup_progress = float(step) / 4.0
 		await RenderingServer.frame_post_draw
 		viewport.get_texture().get_image().save_png("%s/pose-%d.png" % [FRAME_DIR, step])
+	# Compare the held endpoint to the existing hanging atlas and original head.
+	var held_material := visual.drag_rig.skin.material
+	var reference_material := ShaderMaterial.new()
+	reference_material.shader = load("res://shaders/cat_drag_skin.gdshader")
+	reference_material.set_shader_parameter("regions", PackedVector2Array(CatDragRig.REGIONS))
+	reference_material.set_shader_parameter("joints", PackedVector2Array(CatDragRig.JOINTS))
+	reference_material.set_shader_parameter("angles", visual.drag_rig.angles)
+	reference_material.set_shader_parameter("body_only", true)
+	visual.drag_rig.skin.material = reference_material
+	visual.drag_rig.skin.texture = visual.drag_rig.texture
+	visual.drag_rig.master_tail.hide()
+	await RenderingServer.frame_post_draw
+	viewport.get_texture().get_image().save_png(FRAME_DIR + "/held-reference.png")
+	visual.drag_rig.skin.material = held_material
+	visual.drag_rig.skin.texture = visual.layout.master
+	visual.drag_rig.master_tail.show()
 	visual.stop()
 	visual.execute(PetActions.IDLE, 1, {})
 	var samples: Array[Dictionary] = []
@@ -46,6 +62,8 @@ func _run() -> void:
 	var report := FileAccess.open(FRAME_DIR + "/pose-samples.json", FileAccess.WRITE)
 	report.store_string(JSON.stringify(samples))
 	visual.stop()
+	await RenderingServer.frame_post_draw
+	viewport.get_texture().get_image().save_png(FRAME_DIR + "/rest-after-drag.png")
 	# An exploded preview shows the seven masks at a shared scale and origin.
 	visual.visible = false
 	viewport.size = Vector2i(1024, 560)
@@ -64,6 +82,6 @@ func _run() -> void:
 		label.text = CatDragRig.PART_NAMES[index]
 		viewport.add_child(label)
 	await RenderingServer.frame_post_draw
-	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v3.png")
+	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v4.png")
 	print("Rendered split drag pose, directional swing and settling: ", FRAME_DIR)
 	quit()

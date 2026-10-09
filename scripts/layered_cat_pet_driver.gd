@@ -69,6 +69,7 @@ func _ready() -> void:
 	_cache_interaction_region()
 	drag_rig = CatDragRig.new()
 	drag_rig.texture = preload("res://assets/pets/cat/drag-scruff-keyframe-v1.png")
+	drag_rig.seated_master = layout.master
 	drag_rig.position = drag_rig.anchor
 	rig.add_child(drag_rig)
 	drag_rig.set_body_only(true)
