@@ -1,0 +1,78 @@
+{
+  "generator": "built-in imagegen",
+  "runtime_integrated": false,
+  "frames": [
+    {
+      "file": "pickup-early-v2.png",
+      "label": "刚离地",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        156,
+        139,
+        1002,
+        1146
+      ],
+      "head_width_estimate": 743,
+      "transparent_pixels": 910805,
+      "status": "pose draft; head and chest anchors require calibration"
+    },
+    {
+      "file": "pickup-middle-v2.png",
+      "label": "半展开",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        155,
+        59,
+        1000,
+        1162
+      ],
+      "head_width_estimate": 742,
+      "transparent_pixels": 882698,
+      "status": "pose draft; head and chest anchors require calibration"
+    },
+    {
+      "file": "pickup-late-v1.png",
+      "label": "接近悬空",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        317,
+        82,
+        961,
+        1165
+      ],
+      "head_width_estimate": 644,
+      "transparent_pixels": 1082725,
+      "status": "pose draft; head and chest anchors require calibration"
+    },
+    {
+      "file": "landing-contact-v1.png",
+      "label": "着地压缩",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        156,
+        173,
+        1003,
+        1117
+      ],
+      "head_width_estimate": 744,
+      "transparent_pixels": 955034,
+      "status": "pose draft; head and chest anchors require calibration"
+    }
+  ]
+}
