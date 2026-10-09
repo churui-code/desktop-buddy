@@ -2,10 +2,15 @@ extends SceneTree
 
 const FRAME_DIR := "res://previews/drag-rendered"
 
+var version := "v6"
+
 func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--version="):
+			version = argument.trim_prefix("--version=")
 	root.size = Vector2i.ONE
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(320, 320)
@@ -20,8 +25,10 @@ func _run() -> void:
 	await RenderingServer.frame_post_draw
 	viewport.get_texture().get_image().save_png(FRAME_DIR + "/assembled-rest.png")
 	visual._dragging = true
-	for step in range(5):
-		visual._pickup_progress = float(step) / 4.0
+	visual.set_process(false)
+	var review_progress := [0.0, 0.14, 0.225, 0.31, 0.40, 0.49, 0.58, 0.67, 0.75, 0.835, 1.0]
+	for step in range(review_progress.size()):
+		visual._pickup_progress = review_progress[step]
 		await RenderingServer.frame_post_draw
 		viewport.get_texture().get_image().save_png("%s/pose-%d.png" % [FRAME_DIR, step])
 	# Dedicated contact render, then restore the held reference pose.
@@ -50,6 +57,7 @@ func _run() -> void:
 	visual.drag_rig.skin.texture = visual.layout.master
 	visual.drag_rig.master_tail.show()
 	visual.stop()
+	visual.set_process(true)
 	visual.execute(PetActions.IDLE, 1, {})
 	var samples: Array[Dictionary] = []
 	for index in range(144):
@@ -91,6 +99,6 @@ func _run() -> void:
 		label.text = CatDragRig.PART_NAMES[index]
 		viewport.add_child(label)
 	await RenderingServer.frame_post_draw
-	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v5.png")
+	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-%s.png" % version)
 	print("Rendered split drag pose, directional swing and settling: ", FRAME_DIR)
 	quit()

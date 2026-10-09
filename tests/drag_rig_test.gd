@@ -50,7 +50,7 @@ func _run() -> void:
 	cat._pickup_progress = 0.10
 	_check(not cat.transition_frames.visible and rig.posture == 0.0, "Pickup begins at the unchanged seated endpoint.")
 	cat._pickup_progress = 0.60
-	_check(cat.transition_frames.visible and cat.transition_frames.frame_index == 1 and not rig.visible, "Pickup selects the painted unfolding body instead of deforming seated limbs.")
+	_check(cat.transition_frames.visible and cat.transition_frames.frame_index == 5 and not rig.visible, "Pickup selects the painted unfolding body instead of deforming seated limbs.")
 	await cat._drag_tween.finished
 	cat._update_pose()
 	_check(cat.drag_rig.visible and cat.body_pivot.visible and not cat.petting_hand.visible, "Dragging retains the body mesh and original head and cancels the glove.")
@@ -66,7 +66,7 @@ func _run() -> void:
 	cat.execute(PetActions.IDLE, 4, {})
 	_check(cat._drag_exiting, "Manager idle does not interrupt drag release.")
 	cat._release_progress = 0.875
-	_check(cat.transition_frames.visible and cat.transition_frames.frame_index == 3, "Release uses the painted contact frame instead of scaling the whole cat.")
+	_check(cat.transition_frames.visible and cat.transition_frames.frame_index == CatTransitionFrames.CONTACT_FRAME, "Release uses the painted contact frame instead of scaling the whole cat.")
 	cat._release_progress = 0.30
 	var regrab_progress := cat._current_pickup_pose()
 	var regrab_texture := cat.transition_frames.body.texture
@@ -92,6 +92,20 @@ func _run() -> void:
 		cat._release_progress = float(index) / 20.0
 		_check(rig.posture <= interrupted_posture and rig.modulate.a == 1.0 and cat.body_pivot.modulate.a == 1.0, "Every release pose folds back without opacity changes or a hanging-pose jump.")
 	cat.stop()
+	# Release and regrab at every new painted-frame boundary. This exercises
+	# both sides of each switch rather than only one middle pose.
+	for boundary in CatTransitionFrames.FRAME_BOUNDARIES:
+		for offset in [-0.0001, 0.0001]:
+			cat.execute(PetActions.DRAG_START, 8, {})
+			await cat._pose_blend_tween.finished
+			cat._pickup_progress = boundary + offset
+			var texture := cat.transition_frames.body.texture
+			var transform := cat.transition_frames.transform
+			cat.execute(PetActions.DRAG_END, 9, {})
+			_check(cat.transition_frames.body.texture == texture and cat.transition_frames.transform.is_equal_approx(transform), "Release preserves both sides of every painted-frame boundary.")
+			cat.execute(PetActions.DRAG_START, 10, {})
+			_check(cat.transition_frames.body.texture == texture and cat.transition_frames.transform.is_equal_approx(transform), "Regrab preserves both sides of every painted-frame boundary.")
+			cat.stop()
 	cat.free()
 	if failures == 0:
 		print("PASS: split drag rig, velocity response, independent inertia, reversal, settling, bounds and cancellation.")

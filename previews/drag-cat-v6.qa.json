@@ -1,0 +1,39 @@
+{
+  "source_canvas": [
+    1254,
+    1254
+  ],
+  "render_size": [
+    320,
+    320
+  ],
+  "body_geometry": "nine painted pickup bodies, reverse playback and dedicated landing contact; endpoint physics",
+  "painted_frame_indices_seen": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "painted_body_aspect_ratio_preserved": true,
+  "minimum_body_opacity": 1.0,
+  "minimum_head_opacity": 1.0,
+  "original_head_texture_retained": true,
+  "minimum_posture": 0.0,
+  "maximum_posture": 1.0,
+  "animation_frame_count": 144,
+  "held_alpha_max_difference": 2,
+  "held_visible_channel_max_difference": 2,
+  "rest_recovery_channel_max_difference": 0,
+  "opaque_viewport_edge_pixels": 0,
+  "native_window_size": [
+    320,
+    320
+  ],
+  "native_window_alpha_threshold": 3
+}

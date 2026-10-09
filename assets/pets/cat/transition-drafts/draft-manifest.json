@@ -3,13 +3,106 @@
   "runtime_integrated": true,
   "runtime_calibration": {
     "script": "res://scripts/cat_transition_frames.gd",
-    "source_necks": [[627, 752], [627, 650], [627, 570], [627, 790]],
-    "uniform_scales": [1.0, 1.0013477088948788, 1.1537267080745341, 0.9986559139784946],
+    "source_necks": [
+      [
+        627,
+        752
+      ],
+      [
+        627,
+        752
+      ],
+      [
+        627,
+        752
+      ],
+      [
+        627,
+        675
+      ],
+      [
+        627,
+        650
+      ],
+      [
+        627,
+        650
+      ],
+      [
+        627,
+        640
+      ],
+      [
+        627,
+        640
+      ],
+      [
+        627,
+        570
+      ],
+      [
+        627,
+        790
+      ]
+    ],
+    "uniform_scales": [
+      1.0,
+      1.0,
+      1.0,
+      0.9946452476572959,
+      1.0013477088948788,
+      0.9973154362416108,
+      0.9959785522788204,
+      0.9959785522788204,
+      1.1537267080745341,
+      0.9986559139784946
+    ],
     "head_layer": "original idle-base-v1.png; unchanged size",
-    "native_window_size": [320, 320],
-    "preview": "previews/cat-drag-swing-v5.webp"
+    "native_window_size": [
+      320,
+      320
+    ],
+    "preview": "previews/cat-drag-swing-v6.webp",
+    "frame_boundaries": [
+      0.185,
+      0.27,
+      0.355,
+      0.445,
+      0.535,
+      0.625,
+      0.71,
+      0.7925
+    ],
+    "contact_frame": 9,
+    "pickup_seconds": 0.54,
+    "release_seconds": 0.6,
+    "previous_preview": "previews/cat-drag-swing-v5.webp"
   },
   "frames": [
+    {
+      "file": "pickup-low-lift-v1.png",
+      "label": "低抬爪",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        157,
+        141,
+        1001,
+        1143
+      ],
+      "head_width_estimate": 743,
+      "transparent_pixels": 919003,
+      "source_neck": [
+        627,
+        752
+      ],
+      "uniform_scale": 1.0,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-low-lift-v1.prompt.txt"
+    },
     {
       "file": "pickup-early-v2.png",
       "label": "刚离地",
@@ -20,13 +113,67 @@
       "mode": "RGBA",
       "opaque_bounds": [
         156,
-        139,
-        1002,
+        140,
+        1001,
         1146
       ],
       "head_width_estimate": 743,
       "transparent_pixels": 910805,
-      "status": "pose draft; head and chest anchors require calibration"
+      "source_neck": [
+        627,
+        752
+      ],
+      "uniform_scale": 1.0,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-early-v2.prompt.txt"
+    },
+    {
+      "file": "pickup-curl-v1.png",
+      "label": "继续屈爪",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        157,
+        141,
+        1000,
+        1143
+      ],
+      "head_width_estimate": 743,
+      "transparent_pixels": 910237,
+      "source_neck": [
+        627,
+        752
+      ],
+      "uniform_scale": 1.0,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-curl-v1.prompt.txt"
+    },
+    {
+      "file": "pickup-rise-v1.png",
+      "label": "收后腿",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        164,
+        92,
+        1002,
+        1166
+      ],
+      "head_width_estimate": 747,
+      "transparent_pixels": 913163,
+      "source_neck": [
+        627,
+        675
+      ],
+      "uniform_scale": 0.9946452476572959,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-rise-v1.prompt.txt"
     },
     {
       "file": "pickup-middle-v2.png",
@@ -37,14 +184,92 @@
       ],
       "mode": "RGBA",
       "opaque_bounds": [
-        155,
+        156,
         59,
-        1000,
+        999,
         1162
       ],
       "head_width_estimate": 742,
       "transparent_pixels": 882698,
-      "status": "pose draft; head and chest anchors require calibration"
+      "source_neck": [
+        627,
+        650
+      ],
+      "uniform_scale": 1.0013477088948788,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-middle-v2.prompt.txt"
+    },
+    {
+      "file": "pickup-open-v1.png",
+      "label": "打开膝盖",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        185,
+        60,
+        1001,
+        1188
+      ],
+      "head_width_estimate": 745,
+      "transparent_pixels": 905333,
+      "source_neck": [
+        627,
+        650
+      ],
+      "uniform_scale": 0.9973154362416108,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-open-v1.prompt.txt"
+    },
+    {
+      "file": "pickup-unfold-v1.png",
+      "label": "半下垂",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        207,
+        55,
+        1002,
+        1186
+      ],
+      "head_width_estimate": 746,
+      "transparent_pixels": 919843,
+      "source_neck": [
+        627,
+        640
+      ],
+      "uniform_scale": 0.9959785522788204,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-unfold-v1.prompt.txt"
+    },
+    {
+      "file": "pickup-extend-v2.png",
+      "label": "继续伸展",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "opaque_bounds": [
+        233,
+        55,
+        1003,
+        1216
+      ],
+      "head_width_estimate": 746,
+      "transparent_pixels": 921257,
+      "source_neck": [
+        627,
+        640
+      ],
+      "uniform_scale": 0.9959785522788204,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-extend-v2.prompt.txt"
     },
     {
       "file": "pickup-late-v1.png",
@@ -57,12 +282,18 @@
       "opaque_bounds": [
         317,
         82,
-        961,
-        1165
+        960,
+        1164
       ],
       "head_width_estimate": 644,
       "transparent_pixels": 1082725,
-      "status": "pose draft; head and chest anchors require calibration"
+      "source_neck": [
+        627,
+        570
+      ],
+      "uniform_scale": 1.1537267080745341,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "pickup-late-v1.prompt.txt"
     },
     {
       "file": "landing-contact-v1.png",
@@ -74,13 +305,19 @@
       "mode": "RGBA",
       "opaque_bounds": [
         156,
-        173,
-        1003,
-        1117
+        174,
+        1002,
+        1116
       ],
       "head_width_estimate": 744,
       "transparent_pixels": 955034,
-      "status": "pose draft; head and chest anchors require calibration"
+      "source_neck": [
+        627,
+        790
+      ],
+      "uniform_scale": 0.9986559139784946,
+      "status": "runtime calibrated; original generated RGBA preserved",
+      "prompt": "landing-contact-v1.prompt.txt"
     }
   ]
 }
