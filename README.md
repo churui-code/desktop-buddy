@@ -1,6 +1,6 @@
 # Desktop Buddy
 
-用 Godot 4 制作的桌面宠物原型。默认使用奶油色小猫，待机身体、四肢、尾巴、头部和眼睛沿用原始母版，提起时通过连续网格映射到悬空姿势，通过关节变形与节点变换制作动画。待机时轻微呼吸和眨眼；点击会跳起，头部长按会出现白手套摸头，按住左键移动可拖动，右键可重置位置或退出。关闭后会记住位置。
+用 Godot 4 制作的桌面宠物原型。默认使用奶油色小猫，待机沿用原始母版；提起与放下播放身体关键帧，悬空时用关节和惯性弹簧控制四肢、尾巴。头部与眼睛始终保留原图。待机时轻微呼吸和眨眼；点击会跳起，头部长按会出现白手套摸头，按住左键移动可拖动，右键可重置位置或退出。关闭后会记住位置。
 
 ## 运行
 
@@ -25,6 +25,7 @@
 | `assets/pets/cat/layered_cat_layout.tres` | 当前小猫的素材和拼装坐标 |
 | `scripts/layered_cat_pet_driver.gd` | 默认分层小猫的关节动画与眼睛表情 |
 | `scripts/cat_drag_rig.gd` | 悬空姿势的七个图层、独立关节和惯性弹簧 |
+| `scripts/cat_transition_frames.gd` | 身体关键帧、等比尺寸校准与头颈锚点 |
 | `scenes/pets/layered_cat_pet.tscn` | 头部、眼睛、身体、尾巴和独立手套节点 |
 | `scripts/layered_svg_pet_driver.gd` | 原 SVG 角色的 AnimationPlayer / Tween 动画 |
 | `scenes/pets/layered_svg_pet.tscn` | 原 SVG 角色的图层、素材、窗口尺寸和点击区域 |
@@ -34,7 +35,7 @@
 
 SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路径本身保持不变。
 
-头部与眼睛沿用 `idle-base-v1.png` 这张 1254 × 1254 母版，分别由 `cat_master_layer.gdshader` 和 `cat_eye_layer.gdshader` 绘制；耳朵随头部，眼睛随头部关节变换。身体和尾巴使用 `cat_master_skin.gdshader` 的两个网格：坐姿端点直接采样原始待机图，顶点保持原始位置；悬空端点采样 `drag-scruff-keyframe-v1.png`。提放时补间几何位置，并在对应 UV 中插值局部表面纹理，节点透明度保持 100%。尾巴单独绕尾根转动，避免权重把尾巴挤到腿里。素材保留原始尺寸与坐标，无需生成比例各异的零件图。头部、手套关节与显示比例在 `layered_cat_layout.tres` 中配置。v4 检查覆盖整只猫和 16 个待机相位，与独立母版 Sprite 渲染相比，最大可见通道差不超过 2/255，来自网格采样精度。报告见 `previews/layered-cat-v4.qa.json`。v3 强行压缩悬空素材产生坐姿，导致四肢和尾巴变形；该路径已移除，旧预览保留用于对照。
+头部与眼睛沿用 `idle-base-v1.png` 这张 1254 × 1254 母版，分别由 `cat_master_layer.gdshader` 和 `cat_eye_layer.gdshader` 绘制；耳朵随头部，眼睛随头部关节变换。身体和尾巴使用两个端点网格：坐姿直接采样原始待机图，悬空采样 `drag-scruff-keyframe-v1.png`。当前只选择端点，不在坐姿与悬空之间进行 UV 或几何插值。提放过程由 `CatTransitionFrames` 显示绘制好的身体帧，头部独立移动到标定的脖颈位置；`cat_transition_body.gdshader` 隐藏生成图的头部。各帧按头宽等比校准，原始头层的尺寸固定，悬空自然高于坐姿。默认透明窗口扩大到 320 × 320，猫本身的显示比例仍为 0.19。尾巴单独绕尾根转动，避免影响腿部形状。头部、手套参数在 `layered_cat_layout.tres` 中配置；过渡帧的比例、锚点和顺序在 `cat_transition_frames.gd` 中配置。v4 的整猫与 16 个待机相位像素报告保留在 `previews/layered-cat-v4.qa.json`，历史预览保留用于对照。
 
 眨眼只使用现有半闭眼、闭眼图的局部眼睛像素，过渡持续 240ms。管理器每 2–4.5 秒随机触发一次。呼吸以脚底为轴心，尾巴绕尾根轻摆。摸头以脖颈为轴心将头部连续旋转，最大倾角约 2.6 度，避开整图姿势混合造成的耳缘重影；脖颈背后有一块复用胸口像素的隐藏填充，用于覆盖小幅倾斜露出的接缝。这种填充适用于当前的小幅动作，大角度转头和走路仍需要补全遮挡部位或进一步拆分爪子。
 
@@ -42,11 +43,11 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 
 手套素材的锚点 `glove_source_joint` 和缩放 `glove_scale` 独立配置，因此替换图片后可以在运行时校准大小与接触位置。抚摸周期、幅度、下压、手部及头部角度、出入场位移和时间也统一放在 `layered_cat_layout.tres` 中。
 
-待机使用原始坐姿，拖动时映射到被提住后颈的悬空素材 `drag-scruff-keyframe-v1.png`。`CatDragRig` 按原图坐标划分头、躯干、左右前爪、左右后腿、尾巴七个区域和关节，保持同一画布与显示比例。默认使用 `cat_master_skin.gdshader` 保留两个原始端点并对连续网格蒙皮，`cat_drag_skin.gdshader` 提供独立悬空姿势的参考渲染；关节边缘平滑混合，臀部跟随两侧大腿变形；由原图直接提供所有可见像素，避免独立补片在两腿之间露出。悬空素材的头部被蒙版隐藏，始终由待机母版的头部替代，因此提起时脸部保持一致。旧躯干补片和 v1、v2 预览保留用于对比。
+待机使用原始坐姿，持续拖动使用被提住后颈的悬空素材 `drag-scruff-keyframe-v1.png`。`CatDragRig` 按原图坐标划分头、躯干、左右前爪、左右后腿、尾巴七个区域和关节，保持同一画布；悬空素材按头宽整体放大约 1.134 倍。`cat_master_skin.gdshader` 保留两个原始端点并对悬空关节蒙皮，`cat_drag_skin.gdshader` 提供独立悬空参考渲染；肩部、髋部保持连接，臀部跟随两侧大腿变形。悬空素材的头部被蒙版隐藏，始终由待机母版的头部替代。旧躯干补片和历史预览保留用于对比。
 
 窗口控制器将实际窗口位移换算为速度，通过 `PetVisualDriver.update_drag_motion()` 连续传给动画驱动；动作开始和结束仍由管理器统一派发。身体围绕后颈摆动，四肢和尾巴分别使用有阻尼的弹簧积分，保存角速度，反向拖动不会瞬间反向，停住后会继续摆动再衰减。前爪、后腿、尾巴的响应速度不同，尾巴最慢。目标摆角约为身体 11.5°、四肢相对身体 17°、尾巴相对身体 26°，550 像素/秒达到完整输入强度。弹性、阻尼、幅度和输入速度阈值集中在 `CatDragRig` 的导出属性中；积分采用小步长，并限制极端输入和倾角。
 
-默认小猫各动作保留独立执行函数，通过起始姿势、动作过程和结束姿势的补间组织。抓起约 0.46 秒：先轻压、提起与拉伸，再展开四肢；放下约 0.60 秒：下落、落地压缩、回弹恢复。坐姿到悬空补间网格顶点、对应 UV 的局部纹理、头部位置和缩放，猫身与头部的节点透明度一直为 100%；四肢从坐姿逐渐伸展，尾巴从侧面收向下方。新的动作从当前身体、眼睛、手套状态衔接 0.14 秒；释放途中重新拖拽会沿用当前姿势与角速度，提起途中松手也会从当时的姿势收回。动作被打断时会取消旧补间及完成回调，管理器派发待机时会等待正在进行的视觉退出。
+默认小猫各动作保留独立执行函数。抓起约 0.54 秒：原始坐姿 → 刚离地 → 半展开 → 接近悬空 → 悬空关节摇摆；完整放下约 0.60 秒：反向复用提起帧 → 专用着地帧 → 原始坐姿。头颈位置平滑移动，身体直接播放不透明帧，保持素材宽高比。当前只有三张中间姿势和一张着地帧，是接入审阅版本，相邻姿势的四肢仍会有逐帧感；后续可补帧。新的动作从当前头部、眼睛和手套状态衔接 0.14 秒；释放途中重新拖拽沿用当前进度与角速度，提起途中松手从当时的进度反放。动作被打断时取消旧补间及完成回调，管理器派发待机时等待视觉退出完成。
 
 原始 PNG 和提示词保留在 `assets/pets/cat/`。整图逐帧方案仍可通过主场景的 `visual_scene` 切回 `sprite_cat_pet.tscn`；其资源是 `cat_frames.tres`、`blink_region.gdshader` 和 `petting_cat.gdshader`。
 
@@ -86,9 +87,9 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 
 检查也覆盖 PNG 眨眼和摸头的播放、材质恢复、动作打断，以及长按与点击、拖动、取消的手势冲突。若重新生成图片，可先用 Godot 的 `--script res://scripts/export_cat_preview.gd` 渲染三张审阅帧，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_cat_frames.py` 生成正常速度、慢速的透明 WebP 预览及一致性报告。`previews/.gdignore` 让审阅动画不进入 Godot 游戏资源导入。
 
-默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py --version v4`，生成 `previews/cat-layered-head-pet-v4.webp`、`previews/cat-idle-v4.webp` 和整猫像素检查报告，包含淡入、抚摸循环和淡出。旧版 v1、v2、v3 预览保留用于对比。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
+默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py --version v5`，生成 `previews/cat-layered-head-pet-v5.webp`、`previews/cat-idle-v5.webp` 和整猫像素检查报告，包含淡入、抚摸循环和淡出。v5 重新检查整猫及 16 个待机相位，最大可见通道差仍为 2/255，确认关键帧接入未改变待机四肢与尾巴。旧版预览保留用于对比。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
 
-拖动预览使用 `--script res://scripts/export_drag_cat_preview.gd` 渲染，再运行 `scripts/preview_drag_cat.py`，输出 `previews/cat-drag-swing-v4.webp`、五张提起姿势对照 `previews/cat-pickup-poses-v4.png` 和 `previews/drag-cat-v4.qa.json`。预览包含抓起、往返摆动、停住后的惯性衰减、放下与回弹；报告检查全程猫身与头部节点透明度、原头部素材复用、悬空端点像素一致性、姿势端点覆盖和实际 256 像素窗口的裁切（忽略 alpha 小于 3/255 的不可见噪点）。原悬空素材七个区域的拆分图见 `previews/cat-drag-parts-v4.png`。拖动测试覆盖速度驱动、独立滞后、反向惯性、停住回稳、极端输入上限、抓起与落地变形、全程不透明、中途释放的姿势连续性和过渡取消。
+拖动预览使用 `--script res://scripts/export_drag_cat_preview.gd` 渲染，再运行 `scripts/preview_drag_cat.py`，输出 `previews/cat-drag-swing-v5.webp`、提起与着地姿势对照 `previews/cat-pickup-poses-v5.png` 和 `previews/drag-cat-v5.qa.json`。144 帧预览包含抓起、往返摆动、停住后的惯性衰减和放下；报告检查全部四张身体帧的覆盖、等比缩放、节点透明度、原头部复用、悬空端点像素差、待机恢复，以及实际 320 像素窗口的裁切（忽略 alpha 小于 3/255 的噪点）。原悬空素材七区域拆分图见 `previews/cat-drag-parts-v5.png`。拖动测试覆盖速度驱动、独立滞后、反向惯性、停住回稳、极端输入上限、关键帧选择、原头部尺寸、中途释放与重新抓起、旧回调隔离。
 
 ## 首版验证
 

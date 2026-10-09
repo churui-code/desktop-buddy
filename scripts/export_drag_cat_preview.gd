@@ -24,6 +24,15 @@ func _run() -> void:
 		visual._pickup_progress = float(step) / 4.0
 		await RenderingServer.frame_post_draw
 		viewport.get_texture().get_image().save_png("%s/pose-%d.png" % [FRAME_DIR, step])
+	# Dedicated contact render, then restore the held reference pose.
+	visual._dragging = false
+	visual._drag_exiting = true
+	visual._release_progress = 0.875
+	await RenderingServer.frame_post_draw
+	viewport.get_texture().get_image().save_png(FRAME_DIR + "/landing-contact.png")
+	visual._drag_exiting = false
+	visual._dragging = true
+	visual._pickup_progress = 1.0
 	# Compare the held endpoint to the existing hanging atlas and original head.
 	var held_material := visual.drag_rig.skin.material
 	var reference_material := ShaderMaterial.new()
@@ -57,7 +66,7 @@ func _run() -> void:
 			visual.execute(PetActions.IDLE, 4, {})
 		await create_timer(1.0 / 24.0).timeout
 		await RenderingServer.frame_post_draw
-		samples.append({"posture": visual.drag_rig.posture, "body_alpha": visual.drag_rig.modulate.a, "head_alpha": visual.body_pivot.modulate.a * visual.head.modulate.a, "same_head_texture": visual.head.texture == visual.layout.master})
+		samples.append({"posture": visual.drag_rig.posture, "body_alpha": visual.drag_rig.modulate.a, "head_alpha": visual.body_pivot.modulate.a * visual.head.modulate.a, "same_head_texture": visual.head.texture == visual.layout.master, "painted_frame": visual.transition_frames.frame_index if visual.transition_frames.visible else -1, "uniform_body_scale": is_equal_approx(visual.transition_frames.body.scale.x, visual.transition_frames.body.scale.y), "progress": visual._current_pickup_pose()})
 		viewport.get_texture().get_image().save_png("%s/%03d.png" % [FRAME_DIR, index])
 	var report := FileAccess.open(FRAME_DIR + "/pose-samples.json", FileAccess.WRITE)
 	report.store_string(JSON.stringify(samples))
@@ -82,6 +91,6 @@ func _run() -> void:
 		label.text = CatDragRig.PART_NAMES[index]
 		viewport.add_child(label)
 	await RenderingServer.frame_post_draw
-	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v4.png")
+	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v5.png")
 	print("Rendered split drag pose, directional swing and settling: ", FRAME_DIR)
 	quit()

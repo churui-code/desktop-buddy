@@ -7,7 +7,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument("--version", choices=["v4"], default="v4")
+parser.add_argument("--version", choices=["v4", "v5"], default="v5")
 version = parser.parse_args().version
 FRAME_DIR = ROOT / "previews/layered-rendered"
 reference = np.array(Image.open(FRAME_DIR / "master-rest.png").convert("RGBA"))

@@ -1,6 +1,14 @@
 {
   "generator": "built-in imagegen",
-  "runtime_integrated": false,
+  "runtime_integrated": true,
+  "runtime_calibration": {
+    "script": "res://scripts/cat_transition_frames.gd",
+    "source_necks": [[627, 752], [627, 650], [627, 570], [627, 790]],
+    "uniform_scales": [1.0, 1.0013477088948788, 1.1537267080745341, 0.9986559139784946],
+    "head_layer": "original idle-base-v1.png; unchanged size",
+    "native_window_size": [320, 320],
+    "preview": "previews/cat-drag-swing-v5.webp"
+  },
   "frames": [
     {
       "file": "pickup-early-v2.png",

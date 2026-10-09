@@ -48,9 +48,9 @@ func _run() -> void:
 	cat.execute(PetActions.DRAG_START, 2, {})
 	await cat._pose_blend_tween.finished
 	cat._pickup_progress = 0.10
-	_check(cat.body_pivot.scale.y < 1.0 and cat._drag_amount == 0.0, "Pickup starts with a compression before unfolding the joints.")
+	_check(not cat.transition_frames.visible and rig.posture == 0.0, "Pickup begins at the unchanged seated endpoint.")
 	cat._pickup_progress = 0.60
-	_check(cat.body_pivot.position.y < cat.layout.body_joint.y and cat.body_pivot.scale.y > 1.0, "Pickup lifts and stretches the seated body.")
+	_check(cat.transition_frames.visible and cat.transition_frames.frame_index == 1 and not rig.visible, "Pickup selects the painted unfolding body instead of deforming seated limbs.")
 	await cat._drag_tween.finished
 	cat._update_pose()
 	_check(cat.drag_rig.visible and cat.body_pivot.visible and not cat.petting_hand.visible, "Dragging retains the body mesh and original head and cancels the glove.")
@@ -58,17 +58,21 @@ func _run() -> void:
 	for index in range(21):
 		cat._pickup_progress = float(index) / 20.0
 		_check(cat.drag_rig.modulate.a == 1.0 and cat.body_pivot.modulate.a == 1.0, "Every pickup pose stays opaque instead of crossfading.")
-		_check(is_equal_approx(cat.drag_rig.posture, smoothstep(0.18, 1.0, cat._pickup_progress)), "Pickup interpolates the mesh endpoint geometry.")
+		_check(rig.posture == 0.0 or rig.posture == 1.0, "The endpoint mesh never interpolates incompatible sitting and hanging UVs.")
+		_check(is_equal_approx(cat.transition_frames.body.scale.x, cat.transition_frames.body.scale.y), "Painted body frames preserve their aspect ratio.")
+		_check((cat.body_pivot.transform * cat.head_pivot.transform).get_scale().is_equal_approx(Vector2.ONE), "The original head keeps its size throughout pickup.")
 	cat._pickup_progress = 1.0
 	cat.execute(PetActions.DRAG_END, 3, {})
 	cat.execute(PetActions.IDLE, 4, {})
 	_check(cat._drag_exiting, "Manager idle does not interrupt drag release.")
-	cat._release_progress = 0.78
-	_check(cat.body_pivot.visible and cat.body_pivot.scale.y < 0.95, "Release compresses the landing pose before its rebound.")
+	cat._release_progress = 0.875
+	_check(cat.transition_frames.visible and cat.transition_frames.frame_index == 3, "Release uses the painted contact frame instead of scaling the whole cat.")
 	cat._release_progress = 0.30
-	var regrab_position := cat.drag_rig.position
+	var regrab_progress := cat._current_pickup_pose()
+	var regrab_texture := cat.transition_frames.body.texture
+	var regrab_head := cat.body_pivot.transform * cat.head_pivot.transform
 	cat.execute(PetActions.DRAG_START, 5, {})
-	_check(is_equal_approx(cat._pickup_progress, 1.0) and cat.drag_rig.position.is_equal_approx(regrab_position), "Regrabbing a hanging cat preserves its current pose instead of restarting pickup.")
+	_check(is_equal_approx(cat._pickup_progress, regrab_progress) and cat.transition_frames.body.texture == regrab_texture and (cat.body_pivot.transform * cat.head_pivot.transform).is_equal_approx(regrab_head), "Regrab resumes the painted pose and preserves the head transform.")
 	await cat._drag_tween.finished
 	await create_timer(0.3).timeout
 	_check(cat._dragging and is_equal_approx(cat._drag_amount, 1.0), "An old release cannot hide a newly started drag.")
@@ -78,11 +82,12 @@ func _run() -> void:
 	await cat._pose_blend_tween.finished
 	cat._pickup_progress = 0.5
 	var interrupted_posture := rig.posture
-	var interrupted_body_position := rig.position
+	var interrupted_body_transform := cat.transition_frames.transform
+	var interrupted_texture := cat.transition_frames.body.texture
 	var interrupted_head := cat.body_pivot.transform * cat.head_pivot.transform
 	cat.execute(PetActions.DRAG_END, 7, {})
 	_check(is_equal_approx(rig.posture, interrupted_posture), "Releasing midway starts from the actual pickup pose.")
-	_check(rig.position.is_equal_approx(interrupted_body_position) and (cat.body_pivot.transform * cat.head_pivot.transform).is_equal_approx(interrupted_head), "A midway release preserves both head and body transforms.")
+	_check(cat.transition_frames.transform.is_equal_approx(interrupted_body_transform) and cat.transition_frames.body.texture == interrupted_texture and (cat.body_pivot.transform * cat.head_pivot.transform).is_equal_approx(interrupted_head), "A midway release preserves the painted body and head transforms.")
 	for index in range(21):
 		cat._release_progress = float(index) / 20.0
 		_check(rig.posture <= interrupted_posture and rig.modulate.a == 1.0 and cat.body_pivot.modulate.a == 1.0, "Every release pose folds back without opacity changes or a hanging-pose jump.")
