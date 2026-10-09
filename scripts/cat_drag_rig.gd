@@ -4,42 +4,34 @@ extends Node2D
 ## Shared full-size pose: separate masks and joints, no resized/generated limbs.
 @export var texture: Texture2D
 @export var anchor := Vector2(627, 160)
-@export var max_body_angle := 0.105
-@export var max_limb_angle := 0.20
-@export var max_tail_angle := 0.24
-@export var speed_for_full_swing := 950.0
-@export var spring_frequencies := PackedFloat32Array([10.0, 13.0, 11.5, 9.0, 8.0, 6.5])
-@export var damping_ratio := 0.525
+@export var max_body_angle := 0.20
+@export var max_limb_angle := 0.30
+@export var max_tail_angle := 0.46
+@export var speed_for_full_swing := 550.0
+@export var spring_frequencies := PackedFloat32Array([9.0, 12.0, 10.5, 8.0, 7.0, 6.0])
+@export var damping_ratio := 0.48
 @export var input_decay := 7.0
 
-const JOINTS := [Vector2(627, 160), Vector2(475, 655), Vector2(754, 674), Vector2(553, 975), Vector2(750, 989), Vector2(440, 899), Vector2(627, 160)]
+const JOINTS := [Vector2(627, 160), Vector2(475, 655), Vector2(754, 674), Vector2(530, 942), Vector2(755, 955), Vector2(440, 899), Vector2(627, 160)]
 const PART_NAMES := ["Torso", "FrontLeft", "FrontRight", "HindLeft", "HindRight", "Tail", "Head"]
 const REGIONS := [
 	Vector2(410, 615), Vector2(485, 638), Vector2(535, 695), Vector2(579, 759), Vector2(607, 809), Vector2(632, 866), Vector2(626, 899), Vector2(600, 914), Vector2(548, 909), Vector2(504, 890), Vector2(474, 834), Vector2(431, 750),
 	Vector2(737, 636), Vector2(808, 657), Vector2(834, 720), Vector2(817, 806), Vector2(804, 864), Vector2(803, 912), Vector2(786, 943), Vector2(740, 950), Vector2(695, 929), Vector2(670, 894), Vector2(681, 789), Vector2(707, 705),
-	Vector2(499, 978), Vector2(537, 985), Vector2(580, 987), Vector2(619, 1002), Vector2(638, 1033), Vector2(657, 1076), Vector2(650, 1120), Vector2(616, 1146), Vector2(561, 1157), Vector2(515, 1139), Vector2(498, 1092), Vector2(494, 1031),
-	Vector2(697, 981), Vector2(740, 981), Vector2(784, 980), Vector2(805, 1016), Vector2(825, 1068), Vector2(837, 1115), Vector2(807, 1147), Vector2(758, 1159), Vector2(711, 1141), Vector2(685, 1098), Vector2(673, 1048), Vector2(678, 1003),
+	Vector2(456, 885), Vector2(514, 912), Vector2(568, 947), Vector2(614, 977), Vector2(634, 1021), Vector2(657, 1076), Vector2(655, 1144), Vector2(595, 1170), Vector2(530, 1154), Vector2(498, 1092), Vector2(469, 1002), Vector2(443, 930),
+	Vector2(768, 919), Vector2(812, 904), Vector2(844, 943), Vector2(844, 1000), Vector2(825, 1068), Vector2(848, 1148), Vector2(796, 1170), Vector2(731, 1175), Vector2(701, 1138), Vector2(685, 1098), Vector2(664, 1006), Vector2(690, 958),
 	Vector2(329, 850), Vector2(401, 843), Vector2(447, 867), Vector2(459, 923), Vector2(470, 989), Vector2(489, 1038), Vector2(507, 1099), Vector2(489, 1189), Vector2(389, 1203), Vector2(327, 1160), Vector2(310, 1033), Vector2(306, 911),
 ]
 
 var pivots: Array[Node2D] = []
-var angles := PackedFloat64Array([0, 0, 0, 0, 0, 0])
+var angles := PackedFloat32Array([0, 0, 0, 0, 0, 0])
 var angular_speeds := PackedFloat64Array([0, 0, 0, 0, 0, 0])
 var _motion := Vector2.ZERO
-var _underlay: Sprite2D
+var skin: MeshInstance2D
+var _skin_material: ShaderMaterial
 
 
 func _ready() -> void:
 	pivots.resize(7)
-	_underlay = Sprite2D.new()
-	_underlay.texture = preload("res://assets/pets/cat/drag-torso-underlay-v1.png")
-	_underlay.centered = false
-	_underlay.position = -anchor
-	var underlay_material := ShaderMaterial.new()
-	underlay_material.shader = preload("res://shaders/cat_drag_underlay.gdshader")
-	_underlay.material = underlay_material
-	_underlay.z_index = -1
-	add_child(_underlay)
 	# Back layers first; every Sprite retains the same canvas and source origin.
 	for index in [5, 3, 4, 0, 1, 2, 6]:
 		var pivot := Node2D.new()
@@ -57,7 +49,48 @@ func _ready() -> void:
 		sprite.material = material
 		pivot.add_child(sprite)
 		pivots[index] = pivot
+		pivot.visible = false
+	_setup_skin()
 	reset_motion()
+
+
+func _setup_skin() -> void:
+	# A connected mesh keeps shoulder/hip boundaries joined as the independent
+	# bones move. UVs still sample only the original, unchanged pose artwork.
+	var vertices := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	var size := Vector2(texture.get_size())
+	var columns := ceili(size.x / 20.0)
+	var rows := ceili(size.y / 20.0)
+	for y in range(rows + 1):
+		for x in range(columns + 1):
+			var point := Vector2(minf(x * 20.0, size.x), minf(y * 20.0, size.y))
+			vertices.append(Vector3(point.x, point.y, 0))
+			uvs.append(point / size)
+	for y in range(rows):
+		for x in range(columns):
+			var a := y * (columns + 1) + x
+			var b := a + 1
+			var c := a + columns + 1
+			indices.append_array(PackedInt32Array([a, b, c, b, c + 1, c]))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	skin = MeshInstance2D.new()
+	skin.mesh = mesh
+	skin.texture = texture
+	skin.position = -anchor
+	_skin_material = ShaderMaterial.new()
+	_skin_material.shader = preload("res://shaders/cat_drag_skin.gdshader")
+	_skin_material.set_shader_parameter("regions", PackedVector2Array(REGIONS))
+	_skin_material.set_shader_parameter("joints", PackedVector2Array(JOINTS))
+	skin.material = _skin_material
+	add_child(skin)
 
 
 func set_drag_velocity(velocity: Vector2) -> void:
@@ -83,11 +116,14 @@ func advance(delta: float) -> void:
 		pivots[index].rotation = angles[index]
 	# Head follows the scruff pivot with the torso; keep this neck seam closed.
 	pivots[6].rotation = 0.0
-	var fur_coverage := 0.0
-	for index in range(1, 6):
-		fur_coverage = maxf(fur_coverage, absf(angles[index]))
-	_underlay.visible = fur_coverage > 0.0002
-	_underlay.modulate.a = clampf(fur_coverage / 0.006, 0.0, 1.0)
+	_skin_material.set_shader_parameter("angles", angles)
+
+
+func set_lift_pose(fold: float) -> void:
+	# Legs unfold from a tucked pose as weight transfers to the scruff.
+	for index in range(1, 5):
+		pivots[index].scale = Vector2(1.0, 1.0 - clampf(fold, 0.0, 1.0) * 0.28)
+	_skin_material.set_shader_parameter("fold", clampf(fold, 0.0, 1.0))
 
 
 func reset_motion() -> void:
@@ -98,4 +134,5 @@ func reset_motion() -> void:
 		angular_speeds[index] = 0.0
 	for pivot in pivots:
 		pivot.rotation = 0.0
-	_underlay.visible = false
+	set_lift_pose(0.0)
+	_skin_material.set_shader_parameter("angles", angles)

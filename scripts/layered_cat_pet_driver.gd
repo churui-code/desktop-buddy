@@ -31,6 +31,20 @@ var drag_rig: CatDragRig
 var _drag_tween: Tween
 var _drag_amount := 0.0
 var _drag_exiting := false
+var _pickup_progress := 0.0:
+	set(value):
+		_pickup_progress = value
+		if is_instance_valid(drag_rig):
+			_update_pose()
+var _release_progress := 1.0:
+	set(value):
+		_release_progress = value
+		if is_instance_valid(drag_rig):
+			_update_pose()
+var _body_offset_y := 0.0
+var _pose_blend_tween: Tween
+var _pose_blend_amount := 0.0
+var _pose_snapshot := {}
 
 
 func _ready() -> void:
@@ -75,10 +89,7 @@ func execute(action: StringName, request_id: int, _context: Dictionary) -> void:
 	_running = true
 	match action:
 		PetActions.IDLE:
-			if not _pet_exiting and not _drag_exiting:
-				_cancel_foreground()
-				_dragging = false
-				body_pivot.modulate = Color.WHITE
+			_play_idle()
 		PetActions.BLINK:
 			if not _pet_exiting and not _drag_exiting:
 				_play_blink(request_id)
@@ -89,29 +100,56 @@ func execute(action: StringName, request_id: int, _context: Dictionary) -> void:
 		PetActions.HEAD_PET_END:
 			_end_pet()
 		PetActions.DRAG_START:
-			_cancel_foreground()
-			_dragging = true
-			drag_rig.reset_motion()
-			_drag_tween = create_tween()
-			_drag_tween.tween_property(self, "_drag_amount", 1.0, 0.12).set_trans(Tween.TRANS_SINE)
-			interaction_region_changed.emit(PackedVector2Array([Vector2.ZERO, Vector2(preferred_window_size.x, 0), Vector2(preferred_window_size), Vector2(0, preferred_window_size.y)]))
+			_start_drag()
 		PetActions.DRAG_END:
-			_dragging = false
-			_drag_exiting = true
-			_kill_tween(_drag_tween)
-			drag_rig.set_drag_velocity(Vector2.ZERO)
-			_drag_tween = create_tween()
-			_drag_tween.tween_property(self, "_drag_amount", 0.0, 0.18).set_trans(Tween.TRANS_SINE)
-			_drag_tween.finished.connect(func() -> void:
-				_drag_exiting = false
-				drag_rig.reset_motion()
-				_update_pose()
-				interaction_region_changed.emit(get_interaction_region())
-			)
-			_idle_time = 0.0
-			_update_pose()
-			action_finished.emit(action, request_id)
+			_end_drag(request_id)
 	_update_pose()
+
+
+func _play_idle() -> void:
+	if not _pet_exiting and not _drag_exiting:
+		_cancel_foreground()
+		body_pivot.modulate = Color.WHITE
+
+
+func _start_drag() -> void:
+	var resume_hanging := _drag_amount > 0.05
+	_cancel_foreground(true)
+	_dragging = true
+	_release_progress = 0.0
+	_drag_tween = create_tween()
+	interaction_region_changed.emit(PackedVector2Array([Vector2.ZERO, Vector2(preferred_window_size.x, 0), Vector2(preferred_window_size), Vector2(0, preferred_window_size.y)]))
+	if resume_hanging:
+		_pickup_progress = 1.0
+		_drag_tween.tween_interval(0.14)
+		return
+	# Start pose: compress, transfer weight to the scruff, unfold into hanging.
+	_drag_tween.tween_property(self, "_pickup_progress", 0.20, 0.09).set_trans(Tween.TRANS_SINE)
+	_drag_tween.tween_property(self, "_pickup_progress", 0.65, 0.19).set_trans(Tween.TRANS_SINE)
+	_drag_tween.tween_property(self, "_pickup_progress", 1.0, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# Held pose is advanced by the inertia rig, until an explicit end event.
+
+
+func _end_drag(request_id: int) -> void:
+	_dragging = false
+	_drag_exiting = true
+	_kill_tween(_drag_tween)
+	drag_rig.set_drag_velocity(Vector2.ZERO)
+	_drag_tween = create_tween()
+	# End pose: lower, contact/compress, then rebound to the seated baseline.
+	_drag_tween.tween_property(self, "_release_progress", 0.55, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_drag_tween.tween_property(self, "_release_progress", 0.78, 0.12).set_trans(Tween.TRANS_SINE)
+	_drag_tween.tween_property(self, "_release_progress", 1.0, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_drag_tween.finished.connect(func() -> void:
+		_drag_exiting = false
+		_drag_amount = 0.0
+		_pickup_progress = 0.0
+		drag_rig.reset_motion()
+		_update_pose()
+		interaction_region_changed.emit(get_interaction_region())
+	)
+	_idle_time = 0.0
+	action_finished.emit(PetActions.DRAG_END, request_id)
 
 
 func stop() -> void:
@@ -187,31 +225,65 @@ func _setup_neck_fill() -> void:
 
 
 func _update_pose() -> void:
-	body_pivot.visible = _drag_amount < 0.999
-	body_pivot.modulate.a = 1.0 - _drag_amount
+	var visual_pet_amount := lerpf(_pet_amount, _pose_snapshot.get("pet", 0.0), _pose_blend_amount)
+	var lift := 0.0
+	var pickup_squash := 0.0
+	var landing_squash := 0.0
+	if _dragging:
+		_drag_amount = smoothstep(0.56, 0.70, _pickup_progress)
+		lift = smoothstep(0.18, 0.74, _pickup_progress)
+		pickup_squash = sin(clampf(_pickup_progress / 0.20, 0.0, 1.0) * PI) * 0.045
+	elif _drag_exiting:
+		_drag_amount = smoothstep(0.56, 0.70, _pickup_progress) * (1.0 - smoothstep(0.48, 0.56, _release_progress))
+		lift = (1.0 - smoothstep(0.20, 0.58, _release_progress)) * 0.8
+		landing_squash = sin(smoothstep(0.48, 1.0, _release_progress) * PI) * 0.10
+	var visual_drag_amount := lerpf(_drag_amount, _pose_snapshot.get("drag", 0.0), _pose_blend_amount)
+	body_pivot.visible = visual_drag_amount < 0.999
+	body_pivot.modulate.a = 1.0 - visual_drag_amount
 	if is_instance_valid(drag_rig):
-		drag_rig.visible = _drag_amount > 0.001
-		drag_rig.modulate.a = _drag_amount
+		drag_rig.visible = visual_drag_amount > 0.001
+		drag_rig.modulate.a = visual_drag_amount
+		if _dragging or _drag_exiting:
+			drag_rig.position.y = drag_rig.anchor.y + lerpf(65.0, -35.0, _pickup_progress) + smoothstep(0.0, 0.55, _release_progress) * 35.0
+			drag_rig.set_lift_pose((1.0 - _pickup_progress) * 0.8 + smoothstep(0.15, 0.70, _release_progress) * 0.4)
+		else:
+			drag_rig.position = drag_rig.anchor
+			drag_rig.set_lift_pose(0.0)
 	var breath := (1.0 - cos(_idle_time * TAU / 2.6)) / 2.0 if _running and not _dragging else 0.0
 	body_pivot.scale = Vector2(1.0 + breath * 0.005, 1.0 - breath * 0.008)
+	body_pivot.scale += Vector2(pickup_squash + landing_squash - lift * 0.045, -pickup_squash - landing_squash + lift * 0.075)
+	body_pivot.position = layout.body_joint + Vector2(0, _body_offset_y)
+	if _dragging or _drag_exiting:
+		body_pivot.position.y = layout.body_joint.y - lift * 65.0
+		var idle_face := body_pivot.position + body_pivot.scale * (Vector2(627, 550) - layout.body_joint)
+		var aligned := idle_face - (Vector2(627, 450) - drag_rig.anchor).rotated(drag_rig.rotation)
+		var target := Vector2(drag_rig.anchor.x, drag_rig.position.y)
+		drag_rig.position = aligned.lerp(target, smoothstep(0.82, 1.0, _drag_amount))
+	if _pose_blend_amount > 0.0 and _pose_snapshot.get("drag", 0.0) > 0.05:
+		drag_rig.position = drag_rig.position.lerp(_pose_snapshot["drag_position"], _pose_blend_amount)
+		drag_rig.rotation = lerpf(drag_rig.rotation, _pose_snapshot["drag_rotation"], _pose_blend_amount)
 	tail_pivot.rotation = sin(_idle_time * TAU / 3.2) * 0.025 if _running and not _dragging else 0.0
 	var rightward := (1.0 - cos(_stroke_time * TAU / layout.stroke_period)) / 2.0
 	head_pivot.rotation = lerpf(layout.head_angles.x, layout.head_angles.y, rightward) * _pet_amount
+	if _pose_blend_amount > 0.0:
+		body_pivot.position = body_pivot.position.lerp(_pose_snapshot["position"], _pose_blend_amount)
+		body_pivot.scale = body_pivot.scale.lerp(_pose_snapshot["scale"], _pose_blend_amount)
+		head_pivot.rotation = lerpf(head_pivot.rotation, _pose_snapshot["head"], _pose_blend_amount)
 	# All facial patches inherit the head's transform, so no frame silhouette
 	# blending or double ear outlines occur.
-	var closure := maxf(_eye_closure, _pet_amount)
+	var closure := maxf(lerpf(_eye_closure, _pose_snapshot.get("eyes", 0.0), _pose_blend_amount), visual_pet_amount)
 	_eye_material.set_shader_parameter("closure", closure)
-	neck_fill.visible = _pet_amount > 0.001
-	petting_hand.visible = _pet_amount > 0.001
+	neck_fill.visible = visual_pet_amount > 0.001
+	petting_hand.visible = visual_pet_amount > 0.001
 	petting_hand.position = layout.glove_joint - layout.body_joint
 	petting_hand.position += Vector2(lerpf(-layout.stroke_span / 2.0, layout.stroke_span / 2.0, rightward), rightward * layout.stroke_drop)
-	petting_hand.position += layout.entry_offset * (1.0 - _pet_amount)
+	petting_hand.position += layout.entry_offset * (1.0 - visual_pet_amount)
 	petting_hand.rotation = lerpf(layout.hand_angles.x, layout.hand_angles.y, rightward)
-	petting_hand.modulate.a = _pet_amount
+	petting_hand.modulate.a = visual_pet_amount
 
 
 func _play_blink(request_id: int) -> void:
-	_cancel_foreground()
+	_cancel_foreground(true)
 	_active_action = PetActions.BLINK
 	_active_id = request_id
 	_blink_tween = create_tween()
@@ -227,12 +299,12 @@ func _play_blink(request_id: int) -> void:
 
 
 func _play_click(request_id: int) -> void:
-	_cancel_foreground()
+	_cancel_foreground(true)
 	_active_action = PetActions.CLICK
 	_active_id = request_id
 	_click_tween = create_tween()
-	_click_tween.tween_property(body_pivot, "position:y", layout.body_joint.y - 74.0, 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_click_tween.tween_property(body_pivot, "position:y", layout.body_joint.y, 0.25).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	_click_tween.tween_property(self, "_body_offset_y", -74.0, 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_click_tween.tween_property(self, "_body_offset_y", 0.0, 0.25).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 	_click_tween.finished.connect(func() -> void:
 		if _active_action == PetActions.CLICK and _active_id == request_id:
 			_active_action = &""
@@ -242,7 +314,7 @@ func _play_click(request_id: int) -> void:
 
 
 func _start_pet(request_id: int) -> void:
-	_cancel_foreground()
+	_cancel_foreground(true)
 	_active_action = PetActions.HEAD_PET_START
 	_active_id = request_id
 	_stroke_time = 0.0
@@ -264,11 +336,21 @@ func _end_pet() -> void:
 	)
 
 
-func _cancel_foreground() -> void:
+func _cancel_foreground(blend_to_next := false) -> void:
+	var snapshot := {"position": body_pivot.position, "scale": body_pivot.scale, "head": head_pivot.rotation, "pet": petting_hand.modulate.a if petting_hand.visible else 0.0, "eyes": _eye_material.get_shader_parameter("closure"), "drag": drag_rig.modulate.a if is_instance_valid(drag_rig) and drag_rig.visible else 0.0}
+	if snapshot["drag"] > 0.05:
+		snapshot["drag_position"] = drag_rig.position
+		snapshot["drag_rotation"] = drag_rig.rotation
+		snapshot["angles"] = drag_rig.angles.duplicate()
+		snapshot["speeds"] = drag_rig.angular_speeds.duplicate()
+	_kill_tween(_pose_blend_tween)
+	_pose_blend_amount = 0.0
 	_kill_tween(_drag_tween)
 	_drag_tween = null
 	_drag_exiting = false
 	_drag_amount = 0.0
+	_pickup_progress = 0.0
+	_release_progress = 1.0
 	_dragging = false
 	if is_instance_valid(drag_rig):
 		drag_rig.reset_motion()
@@ -285,6 +367,16 @@ func _cancel_foreground() -> void:
 	_pet_amount = 0.0
 	_eye_closure = 0.0
 	body_pivot.position = layout.body_joint
+	_body_offset_y = 0.0
+	if blend_to_next:
+		_pose_snapshot = snapshot
+		_pose_blend_amount = 1.0
+		_pose_blend_tween = create_tween()
+		_pose_blend_tween.tween_property(self, "_pose_blend_amount", 0.0, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		if snapshot["drag"] > 0.05:
+			drag_rig.angles = snapshot["angles"]
+			drag_rig.angular_speeds = snapshot["speeds"]
+			drag_rig.advance(0.0)
 
 
 func _cache_interaction_region() -> void:

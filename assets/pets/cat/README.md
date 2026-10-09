@@ -14,11 +14,11 @@
 
 ## 悬空拖动与七层拆分
 
-`drag-scruff-keyframe-v1.png` 是用户确认的被猫妈妈提住后颈的悬空姿势。`cat_drag_layer.gdshader` 从同一张 1254 × 1254 原图分出头、躯干、两条前腿、两条后腿和尾巴；`CatDragRig` 为各层设置独立轴心，沿用源图坐标，素材大小与拼装位置不靠再次生图匹配。
+`drag-scruff-keyframe-v1.png` 是用户确认的被猫妈妈提住后颈的悬空姿势。`CatDragRig` 在同一张 1254 × 1254 原图中划分头、躯干、两条前腿、两条后腿和尾巴的区域和轴心。当前使用 `cat_drag_skin.gdshader` 的连续网格和软权重控制这些关节，肩部、髋部保持连接，臀部随两侧大腿变形。`cat_drag_layer.gdshader` 用于展示各区域的拆分；素材尺寸与拼装位置沿用源图坐标。
 
-`drag-torso-underlay-v1.png` 由内置 imagegen 参考悬空关键帧生成，移除四肢和尾巴后补全躯干。运行时仅使用其躯干区域，在运动露出关节背面时覆盖接缝，原图头部和四肢保持不变。两张源图均保留透明画布，完整提示词见同名 `.prompt.txt`。
+早期补片 `drag-torso-underlay-v1.png` 由内置 imagegen 参考悬空关键帧生成，现保留用于对比。当前拖拽的所有可见像素直接来自悬空原图；连续蒙皮消除补片在两腿之间露出的问题。两张源图均保留透明画布，完整提示词见同名 `.prompt.txt`。
 
-七层拆分图：`previews/cat-drag-parts-v1.png`。动画预览：`previews/cat-drag-swing-v1.webp`。检查报告：`previews/drag-cat-v1.qa.json`。中立拼装与关键帧的可见像素差为零。动画根据拖动速度驱动独立弹簧，保存角速度并用阻尼衰减，支持反向拖动时的滞后和停住后的余摆。此蒙版与背面补全适用于当前有限幅度的正面摆动。
+七区域拆分图：`previews/cat-drag-parts-v2.png`。动画预览：`previews/cat-drag-swing-v2.webp`。检查报告：`previews/drag-cat-v2.qa.json`。静态网格渲染与关键帧参考的最大通道差不超过 2/255。动画根据拖动速度驱动独立弹簧，支持反向滞后和停住余摆；抓起包含轻压、提起和四肢展开，放下包含下落、落地压缩和回弹。这些动作使用起始与结束姿势插值，当前适用于正面拖拽。
 
 ## 眨眼素材 v1
 

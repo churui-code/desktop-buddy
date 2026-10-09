@@ -39,13 +39,23 @@ func _run() -> void:
 	_check(absf(rig.angles[5]) <= rig.max_tail_angle * 1.35 and is_finite(rig.angles[5]), "Fast movement and frame stalls keep the spring bounded.")
 	cat.execute(PetActions.HEAD_PET_START, 1, {})
 	cat.execute(PetActions.DRAG_START, 2, {})
+	await cat._pose_blend_tween.finished
+	cat._pickup_progress = 0.10
+	_check(cat.body_pivot.scale.y < 1.0 and cat._drag_amount == 0.0, "Pickup starts with a compression before switching artwork.")
+	cat._pickup_progress = 0.40
+	_check(cat.body_pivot.position.y < cat.layout.body_joint.y and cat.body_pivot.scale.y > 1.0, "Pickup lifts and stretches the seated body.")
 	await cat._drag_tween.finished
 	cat._update_pose()
 	_check(cat.drag_rig.visible and not cat.body_pivot.visible and not cat.petting_hand.visible, "Dragging swaps to the hanging rig and cancels the glove.")
 	cat.execute(PetActions.DRAG_END, 3, {})
 	cat.execute(PetActions.IDLE, 4, {})
 	_check(cat._drag_exiting, "Manager idle does not interrupt drag release.")
+	cat._release_progress = 0.78
+	_check(cat.body_pivot.visible and cat.body_pivot.scale.y < 0.95, "Release compresses the landing pose before its rebound.")
+	cat._release_progress = 0.30
+	var regrab_position := cat.drag_rig.position
 	cat.execute(PetActions.DRAG_START, 5, {})
+	_check(is_equal_approx(cat._pickup_progress, 1.0) and cat.drag_rig.position.is_equal_approx(regrab_position), "Regrabbing a hanging cat preserves its current pose instead of restarting pickup.")
 	await cat._drag_tween.finished
 	await create_timer(0.3).timeout
 	_check(cat._dragging and is_equal_approx(cat._drag_amount, 1.0), "An old release cannot hide a newly started drag.")

@@ -42,9 +42,11 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 
 手套素材的锚点 `glove_source_joint` 和缩放 `glove_scale` 独立配置，因此替换图片后可以在运行时校准大小与接触位置。抚摸周期、幅度、下压、手部及头部角度、出入场位移和时间也统一放在 `layered_cat_layout.tres` 中。
 
-拖动时切换到被提住后颈的悬空姿势 `drag-scruff-keyframe-v1.png`。`CatDragRig` 用原图坐标蒙版分成头、躯干、左右前爪、左右后腿、尾巴七层，各层保留相同画布和显示比例。中立姿势拼装与关键帧的可见像素差为零。运动时，另用 `drag-torso-underlay-v1.png` 补全四肢后方的毛色，避免转动时露出肩部、髋部接缝。
+拖动时切换到被提住后颈的悬空姿势 `drag-scruff-keyframe-v1.png`。`CatDragRig` 按原图坐标划分头、躯干、左右前爪、左右后腿、尾巴七个区域和关节，保持同一画布与显示比例。当前使用 `cat_drag_skin.gdshader` 对连续网格蒙皮，关节边缘平滑混合，臀部跟随两侧大腿变形；由原图直接提供所有可见像素，避免独立补片在两腿之间露出。静态网格与 Sprite2D 参考渲染的最大通道差不超过 2/255，来自网格采样精度。旧躯干补片和 v1 预览保留用于对比。
 
-窗口控制器将实际窗口位移换算为速度，通过 `PetVisualDriver.update_drag_motion()` 连续传给动画驱动；动作开始和结束仍由管理器统一派发。身体围绕后颈摆动，四肢和尾巴分别使用有阻尼的弹簧积分，保存角速度，反向拖动不会瞬间反向，停住后会继续摆动再衰减。前爪、后腿、尾巴的响应速度不同，尾巴最慢。弹性、阻尼、幅度和输入速度阈值集中在 `CatDragRig` 的导出属性中；积分采用小步长，并限制极端输入和倾角。进入与释放姿势分别过渡 0.12 / 0.18 秒，新的拖动、点击或摸头会取消旧的过渡。
+窗口控制器将实际窗口位移换算为速度，通过 `PetVisualDriver.update_drag_motion()` 连续传给动画驱动；动作开始和结束仍由管理器统一派发。身体围绕后颈摆动，四肢和尾巴分别使用有阻尼的弹簧积分，保存角速度，反向拖动不会瞬间反向，停住后会继续摆动再衰减。前爪、后腿、尾巴的响应速度不同，尾巴最慢。目标摆角约为身体 11.5°、四肢相对身体 17°、尾巴相对身体 26°，550 像素/秒达到完整输入强度。弹性、阻尼、幅度和输入速度阈值集中在 `CatDragRig` 的导出属性中；积分采用小步长，并限制极端输入和倾角。
+
+默认小猫各动作保留独立执行函数，通过起始姿势、动作过程和结束姿势的补间组织。抓起约 0.46 秒：先轻压、提起与拉伸，再展开四肢；放下约 0.60 秒：下落、落地压缩、回弹恢复。切换两套姿势时对齐头部位置，新的动作从当前身体、眼睛、手套状态衔接 0.14 秒；释放途中重新拖拽会沿用当前悬空姿势与角速度。动作被打断时会取消旧补间及完成回调，管理器派发待机时会等待正在进行的视觉退出。
 
 原始 PNG 和提示词保留在 `assets/pets/cat/`。整图逐帧方案仍可通过主场景的 `visual_scene` 切回 `sprite_cat_pet.tscn`；其资源是 `cat_frames.tres`、`blink_region.gdshader` 和 `petting_cat.gdshader`。
 
@@ -86,7 +88,7 @@ SVG 版本的动画改变 Sprite2D 节点的缩放、旋转和位置，SVG 路�
 
 默认分层预览由 Godot 运行 `--script res://scripts/export_layered_cat_preview.gd` 渲染，再用带 Pillow 和 NumPy 的 Python 运行 `scripts/preview_layered_cat.py --version v2`，生成 `previews/cat-layered-head-pet-v2.webp` 和静态拼装检查报告，包含淡入、抚摸循环和淡出。旧版 v1 预览保留用于对比。逐帧实验方案的预览脚本是 `export_head_pet_preview.gd` 和 `preview_head_pet.py`。
 
-拖动预览使用 `--script res://scripts/export_drag_cat_preview.gd` 渲染，再运行 `scripts/preview_drag_cat.py`，输出 `previews/cat-drag-swing-v1.webp` 和 `previews/drag-cat-v1.qa.json`。预览包含往返摆动、停住后的惯性衰减以及释放；报告检查中立拼装一致性和画面边缘裁切。七层拆分图见 `previews/cat-drag-parts-v1.png`。拖动测试覆盖速度驱动、独立滞后、反向惯性、停住回稳、极端输入上限和过渡取消。
+拖动预览使用 `--script res://scripts/export_drag_cat_preview.gd` 渲染，再运行 `scripts/preview_drag_cat.py`，输出 `previews/cat-drag-swing-v2.webp` 和 `previews/drag-cat-v2.qa.json`。预览包含抓起、往返摆动、停住后的惯性衰减、放下与回弹；报告检查静态采样一致性和实际 256 像素窗口的裁切（忽略 alpha 小于 3/255 的不可见噪点）。七个区域的拆分图见 `previews/cat-drag-parts-v2.png`。拖动测试覆盖速度驱动、独立滞后、反向惯性、停住回稳、极端输入上限、抓起与落地变形和过渡取消。
 
 ## 首版验证
 

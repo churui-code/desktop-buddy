@@ -33,7 +33,7 @@ func _run() -> void:
 	visual.visible = true
 	visual.stop()
 	visual.execute(PetActions.IDLE, 1, {})
-	for index in range(120):
+	for index in range(144):
 		if index == 8:
 			visual.execute(PetActions.DRAG_START, 2, {})
 		if index >= 12 and index < 76:
@@ -52,21 +52,21 @@ func _run() -> void:
 	# An exploded preview shows the seven masks at a shared scale and origin.
 	visual.visible = false
 	viewport.size = Vector2i(1024, 560)
-	for index in range(8):
+	for index in range(7):
 		var part := CatDragRig.new()
 		part.texture = visual.drag_rig.texture
 		part.scale = Vector2.ONE * visual.layout.display_scale
 		var cell := Vector2(index % 4 * 256, index / 4 * 280)
 		part.position = cell + Vector2(128, 128) - (Vector2(627, 627) - part.anchor) * visual.layout.display_scale
 		viewport.add_child(part)
+		part.skin.visible = false
 		for other in range(7):
 			part.pivots[other].visible = other == index
-		part._underlay.visible = index == 7
 		var label := Label.new()
 		label.position = cell + Vector2(16, 251)
-		label.text = CatDragRig.PART_NAMES[index] if index < 7 else "Hidden torso backing"
+		label.text = CatDragRig.PART_NAMES[index]
 		viewport.add_child(label)
 	await RenderingServer.frame_post_draw
-	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v1.png")
+	viewport.get_texture().get_image().save_png("res://previews/cat-drag-parts-v2.png")
 	print("Rendered split drag pose, directional swing and settling: ", FRAME_DIR)
 	quit()

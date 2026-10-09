@@ -24,9 +24,12 @@ bool inside_part(vec2 p, int part) {
 void fragment() {
 	vec2 p = UV / TEXTURE_PIXEL_SIZE;
 	int owner = 0;
-	for (int i = 0; i < 5; i++) {
-		if (inside_part(p, i)) { owner = i + 1; }
-	}
+	// Forelegs cover the thighs; thighs cover the tail root.
+	if (inside_part(p, 4)) { owner = 5; }
+	if (inside_part(p, 2)) { owner = 3; }
+	if (inside_part(p, 3)) { owner = 4; }
+	if (inside_part(p, 0)) { owner = 1; }
+	if (inside_part(p, 1)) { owner = 2; }
 	if (p.y < 576.0 + (p.x - 450.0) * 0.052) { owner = 6; }
 	if (owner != layer) { discard; }
 	COLOR = texture(TEXTURE, UV) * tint;
